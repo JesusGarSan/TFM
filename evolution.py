@@ -21,7 +21,7 @@ steps: Number of time steps to consider.
 Returns:
 X: [steps, len(x)] array. Value of the agents along the evolution
 """
-def evolve_cooperation(x, a, mu, sigma, steps = 1000):
+def _evolve_cooperation(x, a, mu, sigma, steps = 1000):
     assert len(x) == len(a), "Número de agentes inconsistente \n Inconsistent number of agents"
     N = len(x)
     time = range(1, steps+1) 
@@ -57,7 +57,7 @@ Returns:
 X_coop: [steps, len(x)] array. Value of the agents along the cooperative evolution
 X_def: [steps, len(x)] array. Value of the agents along the defective evolution
 """
-def evolve_defection(x, a, mu, sigma, steps = 1000):
+def _evolve_defection(x, a, mu, sigma, steps = 1000):
     assert len(x) == len(a), "Número de agentes inconsistente \n Inconsistent number of agents"
     N = len(x)
 
@@ -79,7 +79,15 @@ def evolve_defection(x, a, mu, sigma, steps = 1000):
     return X_coop, X_def
 
 
-"""
+def evolve(case, x, a, mu, sigma, steps = 1000):
+    if case == 'cooperation':
+        return _evolve_cooperation(x, a, mu, sigma, steps = 1000)
+    if case == 'defection':
+        return _evolve_defection(x, a, mu, sigma, steps = 1000)
+
+    print('Non valid case entered')
+    return
+""" 
 function: get_growth(X)
 
 Calculates the logarithmic growth rate of the agent along its evolution
@@ -114,7 +122,7 @@ if __name__=="__main__":
     mu = 1
     sigma = 0.1  
 
-    X_coop, X_def = evolve_defection(x_ini, a, mu, sigma, steps=1000)
+    X_coop, X_def = evolve('defection', x_ini, a, mu, sigma, steps=1000)
     Gamma = get_growth(X_coop)
     print(Gamma[-1])
     Gamma = get_growth(X_def)
