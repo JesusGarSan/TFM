@@ -6,10 +6,10 @@ It takes charge of all the underlaying mathematics
 import numpy as np
 
 """
-function: _evolve_coop(x, a, mu, sigma, steps = 1000)
+function: _evolve_cooperation(x, a, mu, sigma, steps = 1000)
 
 Evolution of the Stochastic Multiplicative Growth process
-This evolutions function considers that all agents play for the entire evolution period.
+This evolution function considers that all agents play for the entire evolution period.
 
 Inputs:
 x: Initial values of the agents
@@ -32,16 +32,16 @@ def _evolve_cooperation(x, a, mu, sigma, steps = 1000):
 
     for i in time:
         dseta = np.random.normal(mu, sigma, N)
-        x = x * dseta*(1- 2/N *a) + np.mean(a*x*dseta)
+        x = x * dseta*(1 - a) + np.mean(a*x*dseta)
         X[i] = x
             
     return X
 
 """
-function: evolve_defection(x, a, mu, sigma, steps = 1000)
+function: _evolve_defection(x, a, mu, sigma, steps = 1000)
 
-Evolution of the Stochastic Multiplicative Growth process compare to the defective case.
-This evolutions function considers that all agents play for the entire evolution period.
+Evolution of the Stochastic Multiplicative Growth process compared to the defective case.
+This evolution function considers that all agents play for the entire evolution period.
 It will evolve the system according to the sharing parameters as well as complete
 defection using the same random numbers. This way we can compare the evolution in 
 full defection mode compared to a cooperative case.
@@ -70,7 +70,7 @@ def _evolve_defection(x, a, mu, sigma, steps = 1000):
     X_coop[0], X_def[0] = x_ini, x_ini
     for i in time:
         dseta = np.random.normal(mu, sigma, N)
-        x = x * dseta*(1- 2/N *a) + np.mean(a*x*dseta)
+        x = x * dseta*(1 - a) + np.mean(a*x*dseta)
         x_def = x_def*dseta
 
         X_coop[i] = x
@@ -78,15 +78,21 @@ def _evolve_defection(x, a, mu, sigma, steps = 1000):
             
     return X_coop, X_def
 
+"""
+function: evolve(case, x, a, mu, sigma, steps = 1000)
 
+Calls the function _evolve_cooperation or _evolve_defection with the corresponding
+parameters depending on the specified case.
+"""
 def evolve(case, x, a, mu, sigma, steps = 1000):
     if case == 'cooperation':
-        return _evolve_cooperation(x, a, mu, sigma, steps = 1000)
+        return _evolve_cooperation(x, a, mu, sigma, steps)
     if case == 'defection':
-        return _evolve_defection(x, a, mu, sigma, steps = 1000)
+        return _evolve_defection(x, a, mu, sigma, steps)
 
-    print('Non valid case entered')
-    return
+    raise ValueError(f'{case} is not a valid case')
+
+
 """ 
 function: get_growth(X)
 

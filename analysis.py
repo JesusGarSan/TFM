@@ -7,7 +7,7 @@ N_agents = pd.unique(df['N_agents'])
 
 
 for N in N_agents:
-        experiment = df[((df['N_agents']==N) & (df['N_simulations']==20))]
+        experiment = df[((df['N_agents']==N) & (df['N_simulations']==100))]
         x = experiment['a_1']
         y = experiment['gamma_1_rel']
         error = experiment['error']

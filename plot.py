@@ -28,18 +28,4 @@ def evolution(x, legend = True):
     plt.show()
 
 
-if __name__=="__main__":
-    import numpy as np
-    N = 2
-    x0 = 1
-    a_i = 0.2
-    x_ini = np.ones(N)*x0
-    a = np.ones(N) * a_i
-    steps = int(1e3)
-    mu = 1
-    sigma = 0.1  
 
-    from evolution import *
-
-    X, _ = evolve_cooperation(x_ini, a, mu, sigma,)
-    
