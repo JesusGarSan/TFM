@@ -67,3 +67,9 @@ def graph(A):
     plt.figure(figsize=(8, 6))
     nx.draw(G, with_labels=True, node_color='lightblue', node_size=700, edge_color='gray', font_weight='bold')
     plt.show()
+
+
+if __name__ == '__main__':
+    import numpy as np
+    X = np.loadtxt('X.txt')
+    evolution(X)

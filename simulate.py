@@ -59,13 +59,13 @@ This function generates the data required to replicate Figure 1 in the suplemmen
 """
 def fig_1_data(N_array, a_1_array, M = 10, steps=int(1e4), x_ini=1.0, a_i=0.5, mu = 1.0, sigma=0.1, save = False, verbose = False):
     for N in N_array:
-        x = np.ones(N) * x_ini
         for a_1 in a_1_array:
             if verbose: print(f"Running for {N} agents & share parameter {round(a_1, 2)}...")
+            x = np.ones(N) * x_ini
             a = np.ones(N) * a_i
             a[0] = a_1
 
-            _, _, Gammas, Gammas_def = simulate(x,a,mu,sigma, defection = True, steps = steps,)
+            _, _, Gammas, Gammas_def = simulate(x,a,mu,sigma, True, steps, M)
 
             Gammas_rel = (Gammas[0,:] - Gammas_def[0,:]) * 100
             gamma = np.mean(Gammas[0,:]) * 100
@@ -85,11 +85,11 @@ def fig_1_data(N_array, a_1_array, M = 10, steps=int(1e4), x_ini=1.0, a_i=0.5, m
 
 
 if __name__=="__main__":
-    # N = [2,3,4,6,10]
-    # a = np.arange(0, 1.5, 0.02)[1:]
-    # fig_1_data(N, a, M = 100, steps = 10000, save=True, verbose=True)
+    N = [2,3,4,6,10]
+    a = np.arange(0, 1.5, 0.02)[1:]
+    fig_1_data(N, a, M = 200, steps = 10000, save=True, verbose=True)
     
-
+    quit()
     A = np.array([
         [1,1,1,1,1,1,1,1,0,0],
         [1,1,1,1,1,1,1,1,0,0],
