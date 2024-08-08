@@ -31,7 +31,7 @@ def _simulate_cooperation(x_ini, a, mu=1, sigma=0.1, steps = int(1e4), M=1, plot
 
     # Simulations
     for m in range(M):
-        if verbose: print(f"Running simulation {m}...")
+        if verbose: print(f"Running simulation {m+1}...")
         if plot:
             import plot
             x_coop = evolve('cooperation', x_ini, a, mu, sigma, steps = steps)
@@ -73,7 +73,7 @@ def _simulate_defection(x_ini, a, mu=1, sigma=0.1, steps = int(1e4), M=1, plot=F
 
     # Simulations
     for m in range(M):
-        if verbose: print(f"Running simulation {m}...")
+        if verbose: print(f"Running simulation {m+1}...")
         if plot:
             import plot
             x_coop, x_def = evolve('defection', x_ini, a, mu, sigma, steps = steps)
@@ -132,15 +132,62 @@ def fig_1_data(N_array, a_1_array, M = 10, steps=int(1e4), x_ini=1.0, a_i=0.5, m
                     writer.writerow(row)
     return
 
+def sim_network(Adj, x, a, M = 10, steps=int(1e4), mu = 1.0, sigma=0.1, save = False, verbose = False):
+    N = len(x)
+    X_coop, X_def, Gammas_coop, Gammas_def = np.array([np.zeros((N,M))] * 4)
+
+    # Simulations
+    for m in range(M):
+        if verbose: print(f"Running simulation {m+1}...")
+
+        x_coop, x_def = evolve_network_defection(Adj, x, a, mu, sigma, steps)
+
+        X_coop[:,m] = x_coop[-1, :]
+        Gammas_coop[:,m] = get_growth(x_coop)[-1]
+
+        X_def[:,m] = x_def[-1, :]
+        Gammas_def[:,m] = get_growth(x_def)[-1]
+
+    return X_coop, X_def, Gammas_coop, Gammas_def
+
+
 if __name__=="__main__":
-    N = [2,3,4,6,10]
-    a = np.arange(0, 1.5, 0.02)[1:]
-    fig_1_data(N, a, M = 100, steps = 10000, save=True, verbose=True)
+    # N = [2,3,4,6,10]
+    # a = np.arange(0, 1.5, 0.02)[1:]
+    # fig_1_data(N, a, M = 100, steps = 10000, save=True, verbose=True)
     
-    # x_ini = np.ones(3)
-    # a = np.ones(3)*0.2
-    # res = simulate('defection', x_ini, a , M = 2   )
+    A = np.array([
+        [1,1,1,1,1,1,1,1,0,0],
+        [1,1,1,1,1,1,1,1,0,0],
+        [1,1,1,1,1,1,1,1,0,0],
+        [1,1,1,1,1,1,1,1,0,0],
+        [1,1,1,1,1,1,1,1,0,0],
+        [1,1,1,1,1,1,1,1,0,0],
+        [1,1,1,1,1,1,1,1,0,0],
+        [1,1,1,1,1,1,1,1,0,0],
 
-    # print(res[-1])
-    # print(res[-2])
+        [0,0,0,0,0,0,0,0,1,1],
+        [0,0,0,0,0,0,0,0,1,1],
+    ])
+        
+    N = len(A)
+    x = np.ones(N)
+    a = np.ones(N)*0.1
 
+    import matplotlib.pyplot as plt
+    import networkx as nx
+    G = nx.from_numpy_array(A)
+    plt.figure(figsize=(8, 6))
+    nx.draw(G, with_labels=True, node_color='lightblue', node_size=700, edge_color='gray', font_weight='bold')
+    plt.show()
+
+
+    _, _, Gamma_coop, Gamma_def = sim_network(A, x, a, steps= 10000, M = 100, verbose=True)
+
+    Gamma_mean = np.mean(Gamma_coop - Gamma_def, axis = 1) * 100
+    Gamma_std = np.std(Gamma_coop - Gamma_def, axis = 1) * 100
+    Gamma_error = Gamma_std/np.sqrt(len(Gamma_coop[0]))
+
+    bincenters = range(N)
+    plt.bar(bincenters, Gamma_mean, yerr=Gamma_error)
+    plt.show()

@@ -29,5 +29,4 @@ nx.draw(G, with_labels=True, node_color='lightblue', node_size=700, edge_color='
 plt.show()
 
 
-from agent_model import *
 

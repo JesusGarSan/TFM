@@ -79,9 +79,64 @@ def _evolve_defection(x, a, mu, sigma, steps = 1000):
     return X_coop, X_def
 
 """
+function: evolve_network
+
+
+
+"""
+def evolve_network(Adj, x, a, mu, sigma, steps = 1000):
+    assert len(x) == len(a), "Número de agentes inconsistente \n Inconsistent number of agents"
+    N = len(x)
+    assert (N,N) == Adj.shape, "Dimensiones de la matriz de adyacencia inconsistentes con el número de agentes \n The dimensions of the adjacency matrix are inconsistent with the number of agents"
+
+    time = range(1, steps+1) 
+    x_ini = np.copy(x)
+    X = np.zeros((steps+1, N))
+    X[0] = x_ini
+
+    for i in time:
+        dseta = np.random.normal(mu, sigma, N)
+        x_aux = x*dseta*a 
+        shares = Adj * np.tile(x_aux, (N,1)) #Multiplicación elemento a elemento con x como matriz
+        mean = np.divide(shares.sum(axis=1), Adj.sum(axis=1), where=Adj.sum(axis=1) != 0) # Repartimos sólo con los vecinos
+        x = x * dseta*(1 - a) + mean
+        X[i] = x
+            
+    return X
+
+
+def evolve_network_defection(Adj, x, a, mu, sigma, steps = 1000):
+    assert len(x) == len(a), "Número de agentes inconsistente \n Inconsistent number of agents"
+    N = len(x)
+    assert (N,N) == Adj.shape, "Dimensiones de la matriz de adyacencia inconsistentes con el número de agentes \n The dimensions of the adjacency matrix are inconsistent with the number of agents"
+
+    time = range(1, steps+1) 
+    x_def = np.copy(x)
+    x_ini = np.copy(x)
+
+    X_coop = np.zeros((steps+1, N))
+    X_def = np.zeros((steps+1, N))
+    X_coop[0], X_def[0] = x_ini, x_ini
+
+    for i in time:
+        dseta = np.random.normal(mu, sigma, N)
+        x_aux = x*dseta*a 
+        shares = Adj * np.tile(x_aux, (N,1)) #Multiplicación elemento a elemento con x como matriz
+        mean = np.divide(shares.sum(axis=1), Adj.sum(axis=1), where=Adj.sum(axis=1) != 0) # Repartimos sólo con los vecinos
+        x = x * dseta*(1 - a) + mean
+        x_def = x_def*dseta
+         
+        X_coop[i] = x
+        X_def[i] = x_def
+            
+    return X_coop, X_def
+
+
+
+"""
 function: evolve(case, x, a, mu, sigma, steps = 1000)
 
-Calls the function _evolve_cooperation or _evolve_defection with the corresponding
+Calls the evolution functions with the corresponding
 parameters depending on the specified case.
 """
 def evolve(case, x, a, mu, sigma, steps = 1000):
@@ -102,7 +157,7 @@ Inputs:
 X: [steps, len(x)] array. Value of the agents along the evolution
 
 Returns:
-gamma: Logarithmic growth rate of the agent
+Gamma: Logarithmic growth rate of the agent along the evolution
 
 """
 def get_growth(X):
@@ -117,19 +172,65 @@ def get_growth(X):
 
 
 if __name__=="__main__":
-    pass
-
-    N = 3
+    adj_matrix = np.array([
+    [0,1,1,1,1,1,1],
+    [1,0,1,0,0,0,0],
+    [1,1,0,1,0,0,0],
+    [1,0,1,0,0,0,0],
+    [1,0,0,0,0,1,0],
+    [1,0,0,0,1,0,0],
+    [1,0,0,0,0,0,0],
+    ])
+    N = 7
     x0 = 1
     a_i = 0.2
     x_ini = np.ones(N)*x0
     a = np.ones(N) * a_i
     steps = int(1e3)
     mu = 1
-    sigma = 0.1  
+    sigma = 0.1 
+    X = evolve_network(adj_matrix, x_ini, a, mu, sigma)
+    print(X)
 
-    X_coop, X_def = evolve('defection', x_ini, a, mu, sigma, steps=1000)
-    Gamma = get_growth(X_coop)
-    print(Gamma[-1])
-    Gamma = get_growth(X_def)
-    print(Gamma[-1])
+    import plot
+    plot.evolution(X)
+
+    # N = 3
+    # x0 = 1
+    # a_i = 0.2
+    # x_ini = np.ones(N)*x0
+    # a = np.ones(N) * a_i
+    # steps = int(1e3)
+    # mu = 1
+    # sigma = 0.1  
+
+    # X_coop, X_def = evolve('defection', x_ini, a, mu, sigma, steps=1000)
+    # Gamma = get_growth(X_coop)
+    # print(Gamma[-1])
+    # Gamma = get_growth(X_def)
+    # print(Gamma[-1])
+
+    # A = np.array([
+    # [1,1,1],
+    # [1,1,1],
+    # [1,0,1],
+    # ])
+    # x = np.array([5, 6, 8])
+    
+    # # for i in range(10):
+    # #     a = np.random.rand()
+    # #     x = x*a + np.mean(x*a)
+
+    # x_matrix = np.tile(x, (len(x),1))
+    # print(x_matrix)
+    # a= 0.02
+    # shares = x_matrix * A * a
+    # print("Shares")
+    # print(shares)
+    # # print(f"Sum: {np.sum(shares[0])}")
+    # print('mean:')
+    # print(shares.sum(axis=1))
+    # print(A.sum(axis=1))
+    # mean_neighbors = np.divide(shares.sum(axis=1), A.sum(axis=1), where=A.sum(axis=1) != 0)
+    # print(np.mean(shares, axis=1))
+    # print(mean_neighbors)
