@@ -140,7 +140,7 @@ def sim_network(Adj, x, a, M = 10, steps=int(1e4), mu = 1.0, sigma=0.1, save = F
     for m in range(M):
         if verbose: print(f"Running simulation {m+1}...")
 
-        x_coop, x_def = evolve_network_defection(Adj, x, a, mu, sigma, steps)
+        x_coop, x_def = _evolve_network_defection(Adj, x, a, mu, sigma, steps)
 
         X_coop[:,m] = x_coop[-1, :]
         Gammas_coop[:,m] = get_growth(x_coop)[-1]
@@ -157,7 +157,7 @@ if __name__=="__main__":
     # fig_1_data(N, a, M = 100, steps = 10000, save=True, verbose=True)
     
     A = np.array([
-        [1,1,1,1,1,1,1,1,0,0],
+        [1,1,1,1,1,1,1,1,0,1],
         [1,1,1,1,1,1,1,1,0,0],
         [1,1,1,1,1,1,1,1,0,0],
         [1,1,1,1,1,1,1,1,0,0],
@@ -167,7 +167,7 @@ if __name__=="__main__":
         [1,1,1,1,1,1,1,1,0,0],
 
         [0,0,0,0,0,0,0,0,1,1],
-        [0,0,0,0,0,0,0,0,1,1],
+        [1,0,0,0,0,0,0,0,1,1],
     ])
         
     N = len(A)

@@ -79,12 +79,25 @@ def _evolve_defection(x, a, mu, sigma, steps = 1000):
     return X_coop, X_def
 
 """
-function: evolve_network
+function: evolve_network(Adj, x, a, mu, sigma, steps = 1000)
 
+Evolution of the Stochastic Multiplicative Growth process in a network.
+This evolution function considers that all agents play for the entire evolution period.
+The sharing parameter of an agent is applied to every one of its links, so that the total amount
+of value it shares is its share parameter times its number of links.
 
+Inputs:
+Adj: Adjecency Matrix.
+x: Initial values of the agents
+a: Sharing parameters of each agent
+mu: mean of the normal distribution used for the stochasticity
+sigma: Standard deviation of the normal distribution used for the stochasticity
+steps: Number of time steps to consider.
 
+Returns:
+X: [steps, len(x)] array. Value of the agents along the evolution
 """
-def evolve_network(Adj, x, a, mu, sigma, steps = 1000):
+def _evolve_network_cooperation(Adj, x, a, mu, sigma, steps = 1000):
     assert len(x) == len(a), "Número de agentes inconsistente \n Inconsistent number of agents"
     N = len(x)
     assert (N,N) == Adj.shape, "Dimensiones de la matriz de adyacencia inconsistentes con el número de agentes \n The dimensions of the adjacency matrix are inconsistent with the number of agents"
@@ -104,8 +117,30 @@ def evolve_network(Adj, x, a, mu, sigma, steps = 1000):
             
     return X
 
+"""
+function: _evolve_network_defection(Adj, x, a, mu, sigma, steps = 1000)
 
-def evolve_network_defection(Adj, x, a, mu, sigma, steps = 1000):
+Evolution of the Stochastic Multiplicative Growth process compared to the defective case in a network.
+This evolution function considers that all agents play for the entire evolution period.
+It will evolve the system according to the sharing parameters as well as complete
+defection using the same random numbers. This way we can compare the evolution in 
+full defection mode compared to a cooperative case.
+The sharing parameter of an agent is applied to every one of its links, so that the total amount
+of value it shares is its share parameter times its number of links.
+
+Inputs:
+Adj: Adjecency Matrix.
+x: Initial values of the agents
+a: Sharing parameters of each agent
+mu: mean of the normal distribution used for the stochasticity
+sigma: Standard deviation of the normal distribution used for the stochasticity
+steps: Number of time steps to consider.
+
+Returns:
+X_coop: [steps, len(x)] array. Value of the agents along the cooperative evolution
+X_def: [steps, len(x)] array. Value of the agents along the defective evolution
+"""
+def _evolve_network_defection(Adj, x, a, mu, sigma, steps = 1000):
     assert len(x) == len(a), "Número de agentes inconsistente \n Inconsistent number of agents"
     N = len(x)
     assert (N,N) == Adj.shape, "Dimensiones de la matriz de adyacencia inconsistentes con el número de agentes \n The dimensions of the adjacency matrix are inconsistent with the number of agents"
@@ -125,7 +160,7 @@ def evolve_network_defection(Adj, x, a, mu, sigma, steps = 1000):
         mean = np.divide(shares.sum(axis=1), Adj.sum(axis=1), where=Adj.sum(axis=1) != 0) # Repartimos sólo con los vecinos
         x = x * dseta*(1 - a) + mean
         x_def = x_def*dseta
-         
+
         X_coop[i] = x
         X_def[i] = x_def
             
@@ -189,48 +224,4 @@ if __name__=="__main__":
     steps = int(1e3)
     mu = 1
     sigma = 0.1 
-    X = evolve_network(adj_matrix, x_ini, a, mu, sigma)
-    print(X)
-
-    import plot
-    plot.evolution(X)
-
-    # N = 3
-    # x0 = 1
-    # a_i = 0.2
-    # x_ini = np.ones(N)*x0
-    # a = np.ones(N) * a_i
-    # steps = int(1e3)
-    # mu = 1
-    # sigma = 0.1  
-
-    # X_coop, X_def = evolve('defection', x_ini, a, mu, sigma, steps=1000)
-    # Gamma = get_growth(X_coop)
-    # print(Gamma[-1])
-    # Gamma = get_growth(X_def)
-    # print(Gamma[-1])
-
-    # A = np.array([
-    # [1,1,1],
-    # [1,1,1],
-    # [1,0,1],
-    # ])
-    # x = np.array([5, 6, 8])
-    
-    # # for i in range(10):
-    # #     a = np.random.rand()
-    # #     x = x*a + np.mean(x*a)
-
-    # x_matrix = np.tile(x, (len(x),1))
-    # print(x_matrix)
-    # a= 0.02
-    # shares = x_matrix * A * a
-    # print("Shares")
-    # print(shares)
-    # # print(f"Sum: {np.sum(shares[0])}")
-    # print('mean:')
-    # print(shares.sum(axis=1))
-    # print(A.sum(axis=1))
-    # mean_neighbors = np.divide(shares.sum(axis=1), A.sum(axis=1), where=A.sum(axis=1) != 0)
-    # print(np.mean(shares, axis=1))
-    # print(mean_neighbors)
+    X = _evolve_network_defection(adj_matrix, x_ini, a, mu, sigma)
