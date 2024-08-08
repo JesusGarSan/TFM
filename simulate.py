@@ -6,59 +6,22 @@ evolution of agent models, saving the results obtained.
 from evolution import *
 
 """
-function: _simulate_cooperation(x_ini, a, mu=1, sigma=0.1, steps = int(1e4), M=1, plot=False, verbose=False)
+function: simulate(x_ini, a, mu=1, sigma=0.1, defection = True, steps = int(1e4), M=1, plot=False, verbose=False, **kwargs)
 
 Runs simulations of the evolution of the Stochastic Multiplicative Growth process
+Depending on its value sit will run simulations comparing with the defective case or not and considering a network or not
 
 Inputs:
 x_ini: Initial values of the agents
 a: Sharing parameters of each agent
 mu: mean of the normal distribution used for the stochasticity
 sigma: Standard deviation of the normal distribution used for the stochasticity
+defection: Boolean. Determines wether the comparison with defection will be performed or not
 steps: Number of time steps to consider.
 M: Number of simulations to rur
 plot: Boolean. Determines wether a plot will be created or not
 verbose: Boolean. Determines wether the step fo the process will be shown in the terminal or not
-
-Returns:
-X_coop: [len(x_ini), M] array. Last value of the agents after every simulation
-Gammas: [len(x_ini), M] array. Last value of the logarithmic growth rate
-"""
-def _simulate_cooperation(x_ini, a, mu=1, sigma=0.1, steps = int(1e4), M=1, plot=False, verbose=False):
-    assert len(x_ini) == len(a), "Número de agentes inconsistente \n Inconsistent number of agents"
-    N = len(x_ini)
-    X_coop, Gammas = np.array([np.zeros((N,M))] * 2)
-
-    # Simulations
-    for m in range(M):
-        if verbose: print(f"Running simulation {m+1}...")
-        if plot:
-            import plot
-            x_coop = evolve('cooperation', x_ini, a, mu, sigma, steps = steps)
-            plot.evolution(x_coop)
-        if not plot:
-            x_coop = evolve('cooperation', x_ini, a, mu, sigma, steps = steps)
-        
-        X_coop[:,m] = x_coop[-1, :]
-        Gammas[:,m] = get_growth(x_coop)[-1]
-
-    return X_coop, Gammas
-
-"""
-function: _simulate_defection(x_ini, a, mu=1, sigma=0.1, steps = int(1e4), M=1, plot=False, verbose=False)
-
-Runs simulations of the evolution of the Stochastic Multiplicative Growth process
-compared to the defective case.
-
-Inputs:
-x_ini: Initial values of the agents
-a: Sharing parameters of each agent
-mu: mean of the normal distribution used for the stochasticity
-sigma: Standard deviation of the normal distribution used for the stochasticity
-steps: Number of time steps to consider.
-M: Number of simulations to rur
-plot: Boolean. Determines wether a plot will be created or not
-verbose: Boolean. Determines wether the step fo the process will be shown in the terminal or not
+**kwargs: Adj if network
 
 Returns:
 X_coop: [len(x_ini), M] array. Last value of the agents after every cooperative simulation
@@ -66,21 +29,22 @@ X_def: [len(x_ini), M] array. Last value of the agents after every defective sim
 Gammas_coop: [len(x_ini), M] array. Last value of the logarithmic growth rate in the cooperative case
 Gammas_def: [len(x_ini), M] array. Last value of the logarithmic growth rate in the defective case
 """
-def _simulate_defection(x_ini, a, mu=1, sigma=0.1, steps = int(1e4), M=1, plot=False, verbose=False):
+
+
+def simulate(x_ini, a, mu=1, sigma=0.1, defection = True, steps = int(1e4), M=1, plot=False, verbose=False, **kwargs):
     assert len(x_ini) == len(a), "Número de agentes inconsistente \n Inconsistent number of agents"
     N = len(x_ini)
     X_coop, X_def, Gammas_coop, Gammas_def = np.array([np.zeros((N,M))] * 4)
 
-    # Simulations
     for m in range(M):
         if verbose: print(f"Running simulation {m+1}...")
         if plot:
             import plot
-            x_coop, x_def = evolve('defection', x_ini, a, mu, sigma, steps = steps)
+            x_coop, x_def = evolve(x_ini, a, mu, sigma, defection, steps, **kwargs)
             plot.evolution(x_coop)
             plot.evolution(x_def)
         if not plot:
-            x_coop, x_def = evolve('defection', x_ini, a, mu, sigma, steps = steps)
+            x_coop, x_def = evolve(x_ini, a, mu, sigma, defection, steps, **kwargs)
 
         X_coop[:,m] = x_coop[-1, :]
         Gammas_coop[:,m] = get_growth(x_coop)[-1]
@@ -89,20 +53,6 @@ def _simulate_defection(x_ini, a, mu=1, sigma=0.1, steps = int(1e4), M=1, plot=F
         Gammas_def[:,m] = get_growth(x_def)[-1]
 
     return X_coop, X_def, Gammas_coop, Gammas_def
-
-"""
-function: simulate(case, x_ini, a, mu=1, sigma=0.1, steps = int(1e4), M=1, plot=False, verbose=False)
-
-Calls the function _simulate_cooperation or _simulate_defection with the corresponding
-parameters depending on the specified case.
-"""
-def simulate(case, x_ini, a, mu=1, sigma=0.1, steps = int(1e4), M=1, plot=False, verbose=False):
-    if case == 'cooperation':
-        return _simulate_cooperation(x_ini, a, mu, sigma, steps, M, plot, verbose)
-    if case == 'defection':
-        return _simulate_defection(x_ini, a, mu, sigma, steps, M, plot, verbose)
-
-    raise ValueError(f'{case} is not a valid case')
 
 """
 This function generates the data required to replicate Figure 1 in the suplemmental material of Lorenzo's Paper.
@@ -115,7 +65,7 @@ def fig_1_data(N_array, a_1_array, M = 10, steps=int(1e4), x_ini=1.0, a_i=0.5, m
             a = np.ones(N) * a_i
             a[0] = a_1
 
-            _, _, Gammas, Gammas_def = simulate('defection',x,a,mu,sigma,steps,M)
+            _, _, Gammas, Gammas_def = simulate(x,a,mu,sigma, defection = True, steps = steps,)
 
             Gammas_rel = (Gammas[0,:] - Gammas_def[0,:]) * 100
             gamma = np.mean(Gammas[0,:]) * 100
@@ -132,23 +82,6 @@ def fig_1_data(N_array, a_1_array, M = 10, steps=int(1e4), x_ini=1.0, a_i=0.5, m
                     writer.writerow(row)
     return
 
-def sim_network(Adj, x, a, M = 10, steps=int(1e4), mu = 1.0, sigma=0.1, save = False, verbose = False):
-    N = len(x)
-    X_coop, X_def, Gammas_coop, Gammas_def = np.array([np.zeros((N,M))] * 4)
-
-    # Simulations
-    for m in range(M):
-        if verbose: print(f"Running simulation {m+1}...")
-
-        x_coop, x_def = _evolve_network_defection(Adj, x, a, mu, sigma, steps)
-
-        X_coop[:,m] = x_coop[-1, :]
-        Gammas_coop[:,m] = get_growth(x_coop)[-1]
-
-        X_def[:,m] = x_def[-1, :]
-        Gammas_def[:,m] = get_growth(x_def)[-1]
-
-    return X_coop, X_def, Gammas_coop, Gammas_def
 
 
 if __name__=="__main__":
@@ -156,8 +89,9 @@ if __name__=="__main__":
     # a = np.arange(0, 1.5, 0.02)[1:]
     # fig_1_data(N, a, M = 100, steps = 10000, save=True, verbose=True)
     
+
     A = np.array([
-        [1,1,1,1,1,1,1,1,0,1],
+        [1,1,1,1,1,1,1,1,0,0],
         [1,1,1,1,1,1,1,1,0,0],
         [1,1,1,1,1,1,1,1,0,0],
         [1,1,1,1,1,1,1,1,0,0],
@@ -167,27 +101,16 @@ if __name__=="__main__":
         [1,1,1,1,1,1,1,1,0,0],
 
         [0,0,0,0,0,0,0,0,1,1],
-        [1,0,0,0,0,0,0,0,1,1],
+        [0,0,0,0,0,0,0,0,1,1],
     ])
         
     N = len(A)
     x = np.ones(N)
     a = np.ones(N)*0.1
 
-    import matplotlib.pyplot as plt
-    import networkx as nx
-    G = nx.from_numpy_array(A)
-    plt.figure(figsize=(8, 6))
-    nx.draw(G, with_labels=True, node_color='lightblue', node_size=700, edge_color='gray', font_weight='bold')
-    plt.show()
+    _, _, Gamma_coop, Gamma_def = simulate(x, a, M= 3, steps = int(1e4), verbose=True, Adj = A)
+
+    import plot
+    plot.growth_rates(Gamma_coop, Gammas_def=Gamma_def)
 
 
-    _, _, Gamma_coop, Gamma_def = sim_network(A, x, a, steps= 10000, M = 100, verbose=True)
-
-    Gamma_mean = np.mean(Gamma_coop - Gamma_def, axis = 1) * 100
-    Gamma_std = np.std(Gamma_coop - Gamma_def, axis = 1) * 100
-    Gamma_error = Gamma_std/np.sqrt(len(Gamma_coop[0]))
-
-    bincenters = range(N)
-    plt.bar(bincenters, Gamma_mean, yerr=Gamma_error)
-    plt.show()

@@ -28,4 +28,42 @@ def evolution(x, legend = True):
     plt.show()
 
 
+"""
+function: growth_rates(Gammas, **kwargs)
 
+Plots the relative gammas of all the agents in the system, with their respective error.
+
+Inputs:
+Gammas: Relative Growth Rate of the agents.
+"""
+def growth_rates(Gammas, **kwargs):
+    import numpy as np
+    if "Gammas_def" in kwargs: Gammas = np.copy(Gammas - kwargs["Gammas_def"])
+
+    N = len(Gammas)
+    Gamma_mean = np.mean(Gammas, axis = 1) * 100
+    Gamma_std = np.std(Gammas, axis = 1) * 100
+    Gamma_error = Gamma_std/np.sqrt(N)
+
+    bincenters = range(N)
+    plt.bar(bincenters, Gamma_mean, yerr=Gamma_error)
+    plt.xlabel(r"Agents")
+    plt.ylabel(r"Relative long term growth rate")
+    plt.show()
+    return
+
+
+"""
+function: graph(A)
+
+Plots Graph of network
+
+Inputs:
+A: Adjecency matrix of the graph
+"""
+def graph(A):
+    import networkx as nx
+    G = nx.from_numpy_array(A)
+    plt.figure(figsize=(8, 6))
+    nx.draw(G, with_labels=True, node_color='lightblue', node_size=700, edge_color='gray', font_weight='bold')
+    plt.show()

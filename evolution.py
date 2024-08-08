@@ -6,7 +6,7 @@ It takes charge of all the underlaying mathematics
 import numpy as np
 
 """
-function: _evolve_cooperation(x, a, mu, sigma, steps = 1000)
+function: _evolve_cooperation(x, a, mu=1, sigma=0.1, steps = 1000)
 
 Evolution of the Stochastic Multiplicative Growth process
 This evolution function considers that all agents play for the entire evolution period.
@@ -20,8 +20,9 @@ steps: Number of time steps to consider.
 
 Returns:
 X: [steps, len(x)] array. Value of the agents along the evolution
+np.zeros((steps+1, N)): We do this for consistency with the defection cases
 """
-def _evolve_cooperation(x, a, mu, sigma, steps = 1000):
+def _evolve_cooperation(x, a, mu=1, sigma=0.1, steps = 1000):
     assert len(x) == len(a), "Número de agentes inconsistente \n Inconsistent number of agents"
     N = len(x)
     time = range(1, steps+1) 
@@ -35,10 +36,10 @@ def _evolve_cooperation(x, a, mu, sigma, steps = 1000):
         x = x * dseta*(1 - a) + np.mean(a*x*dseta)
         X[i] = x
             
-    return X
+    return X, np.zeros((steps+1, N))
 
 """
-function: _evolve_defection(x, a, mu, sigma, steps = 1000)
+function: _evolve_defection(x, a, mu=1, sigma=0.1, steps = 1000)
 
 Evolution of the Stochastic Multiplicative Growth process compared to the defective case.
 This evolution function considers that all agents play for the entire evolution period.
@@ -57,7 +58,7 @@ Returns:
 X_coop: [steps, len(x)] array. Value of the agents along the cooperative evolution
 X_def: [steps, len(x)] array. Value of the agents along the defective evolution
 """
-def _evolve_defection(x, a, mu, sigma, steps = 1000):
+def _evolve_defection(x, a, mu=1, sigma=0.1, steps = 1000):
     assert len(x) == len(a), "Número de agentes inconsistente \n Inconsistent number of agents"
     N = len(x)
 
@@ -79,7 +80,7 @@ def _evolve_defection(x, a, mu, sigma, steps = 1000):
     return X_coop, X_def
 
 """
-function: evolve_network(Adj, x, a, mu, sigma, steps = 1000)
+function: evolve_network(Adj, x, a, mu=1, sigma=0.1, steps = 1000)
 
 Evolution of the Stochastic Multiplicative Growth process in a network.
 This evolution function considers that all agents play for the entire evolution period.
@@ -96,8 +97,9 @@ steps: Number of time steps to consider.
 
 Returns:
 X: [steps, len(x)] array. Value of the agents along the evolution
+np.zeros((steps+1, N)): We do this for consistency with the defection cases
 """
-def _evolve_network_cooperation(Adj, x, a, mu, sigma, steps = 1000):
+def _evolve_network_cooperation(Adj, x, a, mu=1, sigma=0.1, steps = 1000):
     assert len(x) == len(a), "Número de agentes inconsistente \n Inconsistent number of agents"
     N = len(x)
     assert (N,N) == Adj.shape, "Dimensiones de la matriz de adyacencia inconsistentes con el número de agentes \n The dimensions of the adjacency matrix are inconsistent with the number of agents"
@@ -115,10 +117,10 @@ def _evolve_network_cooperation(Adj, x, a, mu, sigma, steps = 1000):
         x = x * dseta*(1 - a) + mean
         X[i] = x
             
-    return X
+    return X, np.zeros((steps+1, N))
 
 """
-function: _evolve_network_defection(Adj, x, a, mu, sigma, steps = 1000)
+function: _evolve_network_defection(Adj, x, a, mu=1, sigma=0.1, steps = 1000)
 
 Evolution of the Stochastic Multiplicative Growth process compared to the defective case in a network.
 This evolution function considers that all agents play for the entire evolution period.
@@ -140,7 +142,7 @@ Returns:
 X_coop: [steps, len(x)] array. Value of the agents along the cooperative evolution
 X_def: [steps, len(x)] array. Value of the agents along the defective evolution
 """
-def _evolve_network_defection(Adj, x, a, mu, sigma, steps = 1000):
+def _evolve_network_defection(Adj, x, a, mu=1, sigma=0.1, steps = 1000):
     assert len(x) == len(a), "Número de agentes inconsistente \n Inconsistent number of agents"
     N = len(x)
     assert (N,N) == Adj.shape, "Dimensiones de la matriz de adyacencia inconsistentes con el número de agentes \n The dimensions of the adjacency matrix are inconsistent with the number of agents"
@@ -169,18 +171,25 @@ def _evolve_network_defection(Adj, x, a, mu, sigma, steps = 1000):
 
 
 """
-function: evolve(case, x, a, mu, sigma, steps = 1000)
+function: evolve(case, x, a, mu=1, sigma=0.1, steps = 1000)
 
 Calls the evolution functions with the corresponding
 parameters depending on the specified case.
 """
-def evolve(case, x, a, mu, sigma, steps = 1000):
-    if case == 'cooperation':
-        return _evolve_cooperation(x, a, mu, sigma, steps)
-    if case == 'defection':
-        return _evolve_defection(x, a, mu, sigma, steps)
+def evolve(x, a, mu=1, sigma=0.1, defection = True, steps=int(1e4), **kwargs):
+    network = "Adj" in kwargs
+    if network: Adj = kwargs['Adj']
 
-    raise ValueError(f'{case} is not a valid case')
+    if defection and network:
+        return _evolve_network_defection(Adj, x, a, mu, sigma, steps)
+    if defection and not network:
+        return _evolve_defection(x, a, mu, sigma, steps)
+    if not defection and network:
+        return _evolve_network_cooperation(Adj, x, a, mu, sigma, steps)
+    if not defection and not network:
+        return _evolve_cooperation(x, a, mu, sigma, steps)
+
+    raise ValueError(f'Invalid parameters entered')
 
 
 """ 
@@ -207,7 +216,7 @@ def get_growth(X):
 
 
 if __name__=="__main__":
-    adj_matrix = np.array([
+    Adj = np.array([
     [0,1,1,1,1,1,1],
     [1,0,1,0,0,0,0],
     [1,1,0,1,0,0,0],
@@ -224,4 +233,8 @@ if __name__=="__main__":
     steps = int(1e3)
     mu = 1
     sigma = 0.1 
-    X = _evolve_network_defection(adj_matrix, x_ini, a, mu, sigma)
+    X = evolve(x_ini, a, defection=False, Adj=Adj)
+    # X=X_def
+    import plot
+    print(X.shape)
+    plot.evolution(X)
