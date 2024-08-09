@@ -54,37 +54,54 @@ def simulate(x_ini, a, mu=1, sigma=0.1, defection = True, steps = int(1e4), M=1,
 
     return X_coop, X_def, Gammas_coop, Gammas_def
 
+
 """
 This function generates the data required to replicate Figure 1 in the suplemmental material of Lorenzo's Paper.
+To be compatible with calls via parallelization, its parameters are taken as a tuple
 """
-def fig_1_data(N_array, a_1_array, M = 10, steps=int(1e4), x_ini=1.0, a_i=0.5, mu = 1.0, sigma=0.1, save = False, verbose = False):
+def fig_1_simulation(params = (2, 0.1, 10, int(1e4), 1.0, 0.5, 1.0, 0.1, False, False)):
+    N, a_1, M, steps, x_ini, a_i, mu, sigma, save, verbose = params
+    if verbose: print(f"Running for {N} agents & share parameter {round(a_1, 2)}...")
+    x = np.ones(N) * x_ini
+    a = np.ones(N) * a_i
+    a[0] = a_1
+
+    _, _, Gammas, Gammas_def = simulate(x,a,mu,sigma, True, steps, M)
+
+    Gammas_rel = (Gammas[0,:] - Gammas_def[0,:]) * 100
+    gamma = np.mean(Gammas[0,:]) * 100
+    gamma_def = np.mean(Gammas_def[0,:]) * 100
+    gamma_rel = np.mean(Gammas_rel)
+    error = np.std(Gammas_rel)/np.sqrt(len(Gammas_rel))
+    rel_error = error/gamma_rel
+
+    if save:
+        import csv
+        row = [N, x_ini, a_i, a_1, mu, sigma, steps, M, gamma, gamma_def, gamma_rel, error, rel_error]
+        with open('./data/relative_long_term_growth_rate.csv', 'a', newline='') as file:
+            writer = csv.writer(file)
+            writer.writerow(row)
+    return
+
+def fig_1_simulation_parallel(N_array, a_1_array, M = 10, steps=int(1e4), x_ini=1.0, a_i=0.5, mu = 1.0, sigma=0.1, save = False, verbose = False, cores = 7):
+    import multiprocessing
+    parameters = []
     for N in N_array:
         for a_1 in a_1_array:
-            if verbose: print(f"Running for {N} agents & share parameter {round(a_1, 2)}...")
-            x = np.ones(N) * x_ini
-            a = np.ones(N) * a_i
-            a[0] = a_1
+            parameters.append((N, a_1, M, steps, x_ini, a_i, mu, sigma, save, verbose))
 
-            _, _, Gammas, Gammas_def = simulate(x,a,mu,sigma, True, steps, M)
-
-            Gammas_rel = (Gammas[0,:] - Gammas_def[0,:]) * 100
-            gamma = np.mean(Gammas[0,:]) * 100
-            gamma_def = np.mean(Gammas_def[0,:]) * 100
-            gamma_rel = np.mean(Gammas_rel)
-            error = np.std(Gammas_rel)/np.sqrt(len(Gammas_rel))
-            rel_error = error/gamma_rel
-
-            if save:
-                import csv
-                row = [N, x_ini, a_i, a_1, mu, sigma, steps, M, gamma, gamma_def, gamma_rel, error, rel_error]
-                with open('./data/relative_long_term_growth_rate.csv', 'a', newline='') as file:
-                    writer = csv.writer(file)
-                    writer.writerow(row)
-    return
+    with multiprocessing.Pool(cores) as pool:
+        pool.map(fig_1_simulation, parameters)
 
 
 
 if __name__=="__main__":
+
+    N_array = [2,3,4,6,10]
+    a_1_array = np.arange(0, 1.5, 0.02)[1:]
+    fig_1_simulation_parallel(N_array, a_1_array, M=500, steps =int(1e4), save = True, verbose=True, cores = 8)
+    quit()
+
     N = [2,3,4,6,10]
     a = np.arange(0, 1.5, 0.02)[1:]
     fig_1_data(N, a, M = 100, steps = 10000, save=True, verbose=True)
