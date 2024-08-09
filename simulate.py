@@ -99,7 +99,7 @@ if __name__=="__main__":
 
     N_array = [2,3,4,6,10]
     a_1_array = np.arange(0, 1.5, 0.02)[1:]
-    fig_1_simulation_parallel(N_array, a_1_array, M=500, steps =int(1e4), save = True, verbose=True, cores = 8)
+    fig_1_simulation_parallel(N_array, a_1_array, M=50, steps =int(1e4), save = True, verbose=True)
     quit()
 
     N = [2,3,4,6,10]
