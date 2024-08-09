@@ -8,6 +8,12 @@
 
 using namespace std;
 
+struct EvolutionResult {
+    vector<vector<double>> X_coop;
+    vector<vector<double>> X_def;
+};
+
+
 vector<double> generate_normal_distribution(double mu, double sigma, int N) {
     random_device rd;
     mt19937 gen(rd());
@@ -37,7 +43,7 @@ void save_matrix_to_file(const vector<vector<double>>& matrix, const string& fil
     file.close();
 }
 
-vector<vector<double>> _evolve_cooperation(vector<double> x, vector<double> a, double mu = 1, double sigma = 0.1, int steps = 1000) {
+EvolutionResult _evolve_cooperation(vector<double> x, vector<double> a, double mu = 1, double sigma = 0.1, int steps = 1000) {
     assert(x.size() == a.size() && "Número de agentes inconsistente");
 
     int N = x.size();
@@ -46,7 +52,9 @@ vector<vector<double>> _evolve_cooperation(vector<double> x, vector<double> a, d
 
     for (int i = 1; i <= steps; ++i) {
         vector<double> dseta = generate_normal_distribution(mu, sigma, N);
-        double mean_a_x_dseta = inner_product(a.begin(), a.end(), dseta.begin(), 0.0) / N;
+        double mean_a_x_dseta = 0.0;
+        for (int j = 0; j < N; ++j) mean_a_x_dseta += a[j] * x[j] * dseta[j];
+        mean_a_x_dseta /= N;
 
         for (int j = 0; j < N; ++j) {
             x[j] = x[j] * dseta[j] * (1 - a[j]) + mean_a_x_dseta;
@@ -54,45 +62,107 @@ vector<vector<double>> _evolve_cooperation(vector<double> x, vector<double> a, d
         }
     }
 
-    return X;
+    return {X, {}};
 }
 
-vector<vector<double>> _evolve_defection(vector<double> x, vector<double> a, double mu = 1, double sigma = 0.1, int steps = 1000) {
+
+EvolutionResult _evolve_defection(vector<double> x, vector<double> a, double mu = 1, double sigma = 0.1, int steps = 1000) {
     assert(x.size() == a.size() && "Número de agentes inconsistente");
 
     int N = x.size();
+    vector<double> x_coop = x;
+    vector<double> x_def = x;
     vector<vector<double>> X_coop(steps + 1, vector<double>(N));
     vector<vector<double>> X_def(steps + 1, vector<double>(N));
-    X_coop[0] = x;
-    X_def[0] = x;
+    X_coop[0] = x_coop;
+    X_def[0] = x_def;
 
     for (int i = 1; i <= steps; ++i) {
         vector<double> dseta = generate_normal_distribution(mu, sigma, N);
+        double mean_a_x_dseta = 0.0;
+        for (int j = 0; j < N; ++j) mean_a_x_dseta += a[j] * x_coop[j] * dseta[j];
+        mean_a_x_dseta /= N;
 
         for (int j = 0; j < N; ++j) {
-            x[j] = x[j] * dseta[j] * (1 - a[j]) + inner_product(a.begin(), a.end(), dseta.begin(), 0.0) / N;
-            X_coop[i][j] = x[j];
-            X_def[i][j] = X_def[i][j] * dseta[j];
+            x_coop[j] = x_coop[j] * dseta[j] * (1 - a[j]) + mean_a_x_dseta;
+            x_def[j] = x_def[j] * dseta[j];  
         }
+
+        X_coop[i] = x_coop;  
+        X_def[i] = x_def;  
     }
 
-    return X_coop;
+    return {X_coop, X_def};
 }
 
-vector<vector<double>> _evolve_network_cooperation(vector<vector<int>> Adj, vector<double> x, vector<double> a, double mu = 1, double sigma = 0.1, int steps = 1000) {
+
+
+
+
+EvolutionResult _evolve_network_cooperation(vector<vector<int>> Adj, vector<double> x, vector<double> a, double mu = 1, double sigma = 0.1, int steps = 1000) {
     assert(x.size() == a.size() && "Número de agentes inconsistente");
     int N = x.size();
     assert(Adj.size() == N && Adj[0].size() == N && "Dimensiones de la matriz de adyacencia inconsistentes con el número de agentes");
 
-    vector<vector<double>> X(steps + 1, vector<double>(N));
-    X[0] = x;
+    // Inicialización de vectores para las trayectorias
+    vector<double> x_coop = x;
+    vector<vector<double>> X_coop(steps + 1, vector<double>(N));
+    X_coop[0] = x_coop;
+
+    // Evolución de la red
+    for (int i = 1; i <= steps; ++i) {
+        vector<double> dseta = generate_normal_distribution(mu, sigma, N);
+        vector<double> x_aux(N);
+
+        // Calcula x_aux usando x_coop
+        for (int j = 0; j < N; ++j) {
+            x_aux[j] = x_coop[j] * dseta[j] * a[j];
+        }
+
+        // Actualiza los valores de x_coop
+        for (int j = 0; j < N; ++j) {
+            double sum = 0.0;
+            double adj_sum = 0.0;
+
+            // Suma ponderada por la matriz de adyacencia
+            for (int k = 0; k < N; ++k) {
+                sum += Adj[j][k] * x_aux[k];
+                adj_sum += Adj[j][k];
+            }
+
+            // Calcula el valor medio si hay conexiones
+            double mean = adj_sum != 0 ? sum / adj_sum : 0.0;
+
+            // Actualiza x_coop
+            x_coop[j] = x_coop[j] * dseta[j] * (1 - a[j]) + mean;
+
+            // Guarda el resultado de esta iteración
+            X_coop[i][j] = x_coop[j];
+        }
+    }
+
+    return {X_coop, {}};
+}
+
+
+EvolutionResult _evolve_network_defection(vector<vector<int>> Adj, vector<double> x, vector<double> a, double mu = 1, double sigma = 0.1, int steps = 1000) {
+    assert(x.size() == a.size() && "Número de agentes inconsistente");
+    int N = x.size();
+    assert(Adj.size() == N && Adj[0].size() == N && "Dimensiones de la matriz de adyacencia inconsistentes con el número de agentes");
+
+    vector<double> x_coop = x;
+    vector<double> x_def = x;
+    vector<vector<double>> X_coop(steps + 1, vector<double>(N));
+    vector<vector<double>> X_def(steps + 1, vector<double>(N));
+    X_coop[0] = x_coop;
+    X_def[0] = x_def;
 
     for (int i = 1; i <= steps; ++i) {
         vector<double> dseta = generate_normal_distribution(mu, sigma, N);
         vector<double> x_aux(N);
 
         for (int j = 0; j < N; ++j) {
-            x_aux[j] = x[j] * dseta[j] * a[j];
+            x_aux[j] = x_coop[j] * dseta[j] * a[j];
         }
 
         for (int j = 0; j < N; ++j) {
@@ -105,52 +175,20 @@ vector<vector<double>> _evolve_network_cooperation(vector<vector<int>> Adj, vect
             }
 
             double mean = adj_sum != 0 ? sum / adj_sum : 0.0;
-            x[j] = x[j] * dseta[j] * (1 - a[j]) + mean;
-            X[i][j] = x[j];
+
+            x_coop[j] = x_coop[j] * dseta[j] * (1 - a[j]) + mean;
+            x_def[j] = x_def[j] * dseta[j];
+
+            X_coop[i][j] = x_coop[j];
+            X_def[i][j] = x_def[j];
         }
     }
 
-    return X;
+    return {X_coop, X_def};
 }
 
-vector<vector<double>> _evolve_network_defection(vector<vector<int>> Adj, vector<double> x, vector<double> a, double mu = 1, double sigma = 0.1, int steps = 1000) {
-    assert(x.size() == a.size() && "Número de agentes inconsistente");
-    int N = x.size();
-    assert(Adj.size() == N && Adj[0].size() == N && "Dimensiones de la matriz de adyacencia inconsistentes con el número de agentes");
 
-    vector<vector<double>> X_coop(steps + 1, vector<double>(N));
-    vector<vector<double>> X_def(steps + 1, vector<double>(N));
-    X_coop[0] = x;
-    X_def[0] = x;
-
-    for (int i = 1; i <= steps; ++i) {
-        vector<double> dseta = generate_normal_distribution(mu, sigma, N);
-        vector<double> x_aux(N);
-
-        for (int j = 0; j < N; ++j) {
-            x_aux[j] = x[j] * dseta[j] * a[j];
-        }
-
-        for (int j = 0; j < N; ++j) {
-            double sum = 0.0;
-            double adj_sum = 0.0;
-
-            for (int k = 0; k < N; ++k) {
-                sum += Adj[j][k] * x_aux[k];
-                adj_sum += Adj[j][k];
-            }
-
-            double mean = adj_sum != 0 ? sum / adj_sum : 0.0;
-            x[j] = x[j] * dseta[j] * (1 - a[j]) + mean;
-            X_def[i][j] = X_def[i][j] * dseta[j];
-            X_coop[i][j] = x[j];
-        }
-    }
-
-    return X_coop;
-}
-
-vector<vector<double>> evolve(vector<double> x, vector<double> a, double mu = 1, double sigma = 0.1, bool defection = true, int steps = 1000, vector<vector<int>> Adj = {}) {
+EvolutionResult evolve(vector<double> x, vector<double> a, double mu = 1, double sigma = 0.1, bool defection = true, int steps = 1000, vector<vector<int>> Adj = {}) {
     bool network = !Adj.empty();
 
     if (defection && network) {
@@ -185,7 +223,9 @@ vector<vector<double>> get_growth(vector<vector<double>> X) {
     return Gamma;
 }
 
+/*
 int main() {
+
     vector<vector<int>> Adj = {
         {0,1,1,1,1,1,1},
         {1,0,1,0,0,0,0},
@@ -198,18 +238,21 @@ int main() {
 
     int N = 7;
     double x0 = 1;
-    double a_i = 0.2;
+    double a_i = 0.9;
     vector<double> x_ini(N, x0);
     vector<double> a(N, a_i);
     int steps = 1000;
     double mu = 1;
     double sigma = 0.1;
 
-    vector<vector<double>> X = evolve(x_ini, a, mu, sigma, false, steps, Adj);
-
+    EvolutionResult  result = evolve(x_ini, a, mu, sigma, false, steps, Adj);
+    vector<vector<double>> X_coop = result.X_coop;
+    vector<vector<double>> X_def = result.X_def;
     // Guardar la matriz X en un archivo
-    save_matrix_to_file(X, "X.txt");
+    save_matrix_to_file(X_coop, "data/X_coop.txt");
+    save_matrix_to_file(X_def, "data/X_def.txt");
 
     
     return 0;
 }
+*/

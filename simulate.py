@@ -87,7 +87,7 @@ def fig_1_data(N_array, a_1_array, M = 10, steps=int(1e4), x_ini=1.0, a_i=0.5, m
 if __name__=="__main__":
     N = [2,3,4,6,10]
     a = np.arange(0, 1.5, 0.02)[1:]
-    fig_1_data(N, a, M = 200, steps = 10000, save=True, verbose=True)
+    fig_1_data(N, a, M = 100, steps = 10000, save=True, verbose=True)
     
     quit()
     A = np.array([

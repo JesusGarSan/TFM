@@ -1,14 +1,14 @@
 import matplotlib.pyplot as plt
 import pandas as pd
 
-df = pd.read_csv("./data/relative_long_term_growth_rate_no_threshold.csv")
+# df = pd.read_csv("./data/relative_long_term_growth_rate_no_threshold.csv")
 df = pd.read_csv("./data/relative_long_term_growth_rate.csv")
 
 N_agents = pd.unique(df['N_agents'])
 
 
 for N in N_agents:
-        experiment = df[((df['N_agents']==N) & (df['N_simulations']==200))]
+        experiment = df[((df['N_agents']==N) & (df['N_simulations']==10))]
         x = experiment['a_1']
         y = experiment['gamma_1_rel']
         error = experiment['error']

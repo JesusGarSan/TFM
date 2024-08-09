@@ -71,5 +71,7 @@ def graph(A):
 
 if __name__ == '__main__':
     import numpy as np
-    X = np.loadtxt('X.txt')
-    evolution(X)
+    X_coop = np.loadtxt('data/X_coop.txt')
+    X_def = np.loadtxt('data/X_def.txt')
+    evolution(X_coop)
+    evolution(X_def)

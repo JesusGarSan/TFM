@@ -225,15 +225,15 @@ if __name__=="__main__":
     [1,0,0,0,1,0,0],
     [1,0,0,0,0,0,0],
     ])
-    N = 7
+    N = 2
     x0 = 1
     a_i = 0.2
     x_ini = np.ones(N)*x0
     a = np.ones(N) * a_i
-    steps = int(1e3)
+    steps = int(1e4)
     mu = 1
     sigma = 0.1 
-    X = evolve(x_ini, a, defection=False, Adj=Adj)
+    X, X_def = evolve(x_ini, a, defection=False)
     # X=X_def
     import plot
     print(X.shape)
