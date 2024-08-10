@@ -38,6 +38,7 @@ Gammas: Relative Growth Rate of the agents.
 """
 def growth_rates(Gammas, **kwargs):
     import numpy as np
+    plt.figure(figsize=(8, 6))
     if "Gammas_def" in kwargs: Gammas = np.copy(Gammas - kwargs["Gammas_def"])
 
     N = len(Gammas)
@@ -49,7 +50,7 @@ def growth_rates(Gammas, **kwargs):
     plt.bar(bincenters, Gamma_mean, yerr=Gamma_error)
     plt.xlabel(r"Agents")
     plt.ylabel(r"Relative long term growth rate")
-    plt.show()
+    plt.show(block=False)
     return
 
 
@@ -66,7 +67,7 @@ def graph(A):
     G = nx.from_numpy_array(A)
     plt.figure(figsize=(8, 6))
     nx.draw(G, with_labels=True, node_color='lightblue', node_size=700, edge_color='gray', font_weight='bold')
-    plt.show()
+    plt.show(block=False)
 
 
 if __name__ == '__main__':

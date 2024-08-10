@@ -1,0 +1,8 @@
+# Ignorar la carpeta .vscode
+.vscode/
+
+# Ignorar la carpeta __pycache__
+__pycache__/
+
+# Ignorar la carpeta cpp
+cpp/
