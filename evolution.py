@@ -215,7 +215,159 @@ def get_growth(X):
     return Gamma
 
 
+"""
+function: selection()
+
+We use this function to discard the worst performing agents every few steps
+
+"""
+
+def selection():
+    return
+
+
+
+"""
+function optimize_sharing()
+
+Calculates the optimal sharing parameter of an agent to maximize its relative growth rate .
+"""
+
+def optimize_sharing(x_ini, a, delta_a = 0.1, precision = 0.01, max_attempts = 5,
+                     max_steps = int(1e4), agent_id=0, cpus = 2, verbose = False):
+    from simulate import simulate, gamma_stats
+    old_gamma_rel = 0
+    delta_gamma = 0
+    trend = +1
+    attempts = 1
+
+    A = np.zeros(max_steps)
+    Delta_gamma = np.zeros(max_steps)
+    Trend = np.zeros(max_steps)
+    Delta_a = np.zeros(max_steps)
+    for m in range(max_steps):
+        _, _, Gammas_coop, Gammas_def=  simulate(x_ini, a, 1.0, 0.1, M = 154, cpus=cpus)    
+        _, _,gamma_rel, _ = gamma_stats(Gammas_coop, Gammas_def)
+        delta_gamma = gamma_rel-old_gamma_rel
+        if verbose: print(f"Step {m} with a_{agent_id} = {a[agent_id]}, delta_a = {delta_a}, delta_gamma = {delta_gamma}")
+        
+
+        # If the change in a is significative, we keep going
+        if delta_a > precision:
+            old_gamma_rel = gamma_rel
+            # If the trend is favorable, we keep it
+            if delta_gamma > 0:
+                # delta_a *= 1.25
+                pass
+            # If the trend is detrimental, we reverse it and reduce the step
+            if delta_gamma < 0:
+                trend *=-1
+                delta_a *= 0.75
+
+            a[agent_id] += trend*delta_a
+            a[agent_id] = np.clip(a[agent_id], 0, 1)
+            attempts = 1
+        
+        # If the change is no significative, we try again
+        if delta_a < precision:
+            
+            # delta_a *= 0.5
+            # delta_a = precision
+            # If the change stays small long enough, we take that as our result
+            attempts +=1
+            if attempts > max_attempts:
+                return a[agent_id], m, A, Delta_gamma, Trend, Delta_a
+            if delta_gamma < 0:
+                delta_a *= 1.25
+            
+        A[m] = a[agent_id]
+        Delta_gamma[m] = delta_gamma
+        Trend[m] = trend
+        Delta_a[m] = delta_a
+    # If the result is not found within the maximum number of steps allowed, we return what we got
+    return a[agent_id], m, A, Delta_gamma, Trend, Delta_a
+
+
+
 if __name__=="__main__":
+    import plot
+    import matplotlib.pyplot as plt
+    from simulate import *
+    np.random.seed(124)
+    N = 10
+    x = np.ones(N)
+    a = np.ones(N)*0.5
+    a[0] = 0.3
+    optimal_a, steps, A, Delta_gamma, Trend, Delta_a = optimize_sharing(x, a, max_steps=30, cpus=7, verbose=True)
+
+    print(optimal_a, steps)
+
+    plt.plot(A, label=r"Optimal Sharing parameter")
+    plt.plot(Delta_gamma, label=r"$\Delta \gamma$")
+    plt.plot(Trend, label ='trend')
+    plt.plot(Delta_a, label=r'$\Delta a$')
+    plt.xlim(0, steps-1)
+    plt.legend()
+    plt.show()
+    quit()
+
+
+    trend = +1
+    delta = 0.01
+
+    M = 100
+    A = np.zeros(M)
+    Trend = np.zeros(M)
+    Gammas_rel = np.zeros(M)
+
+    N = 2
+    x = np.ones(N)
+    a = np.ones(N)*0.5
+    a[0] = .45
+    A = np.zeros(100)
+    A[0] = a[0]
+    # np.random.seed(123)
+    old_gamma_rel = 0
+    delta_gamma = 0
+    for i in range(M):
+        print(f"Iteration {i}, {round(a[0], 2)}, {old_gamma_rel}, {delta_gamma}")
+        # X, X_def = evolve(x, a, 1.0, 0.1, steps=10000)
+        _, _, Gammas_coop, Gammas_def=  simulate(x, a, 1, 0.1, M = 50, cpus=7)
+
+        gamma_rel, _ = gamma_stats(Gammas_coop, Gammas_def)
+        delta_gamma = gamma_rel-old_gamma_rel
+
+        if delta_gamma > 0: 
+            a[0] += trend*delta
+        if delta_gamma < 0: 
+            trend *= -1
+            a[0] += trend*delta
+
+        a[0] = np.clip(a[0], 0, 1)
+
+        old_gamma_rel = gamma_rel
+        A[i] = a[0]
+        Trend[i] = trend
+        Gammas_rel[i] = gamma_rel
+    
+    plt.plot(A)
+    plt.show(block=False)
+    
+    plt.plot(Trend)
+    plt.show(block=False)
+    
+    plt.plot(Gammas_rel)
+    plt.show(block=False)
+
+    input()
+
+
+    # plt.plot(Gamma_coop - Gamma_def)
+    # plt.show(block=False)
+    # print(Gamma_def.shape)
+    # input()
+
+    quit()
     Adj = np.array([
     [0,1,1,1,1,1,1],
     [1,0,1,0,0,0,0],
@@ -235,6 +387,5 @@ if __name__=="__main__":
     sigma = 0.1 
     X, X_def = evolve(x_ini, a, defection=False)
     # X=X_def
-    import plot
     print(X.shape)
     plot.evolution(X)

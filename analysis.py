@@ -41,9 +41,11 @@ for N in N_agents:
         x = experiment['a_1']
         y = experiment['gamma_1_rel']
         error = experiment['error']
-
         # plt.scatter(x,y, label=f"{N} agents")
         plt.errorbar(x,y, error, label=f"{N} agents")
+
+        id_max= np.argmax(y)
+        plt.scatter(x.iloc[id_max], y.iloc[id_max])
 
 ymin, ymax = plt.ylim()
 plt.ylim(ymin, ymax)
