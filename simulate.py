@@ -3,7 +3,7 @@ This module contains all the functions needed to simulate the
 evolution of agent models, saving the results obtained.
 """
 import numpy as  np
-from evolution import *
+from evolution import evolve, get_growth
 
 """
 function: _simulate_single(x_ini, a, mu=1, sigma=0.1, defection = True, steps = int(1e4), M=1, plot=False, verbose=False, **kwargs)
@@ -105,7 +105,6 @@ def simulate(N, x_ini, a, mu=1, sigma=0.1, defection=True, steps=int(1e4), M=10,
     from functools import partial # This is used to pass **kwargs to the function in starmap
     assert cpus <= mp.cpu_count(), "Specified number of CPUs is larger than available."
     if cpus == 1: return _simulate_single(N, x_ini,a,mu,sigma,defection,steps,M,**kwargs)
-    N = len(x_ini)
     if ('verbose' in kwargs and kwargs['verbose'] == True): verbose = True
     else: verbose= False 
     X_coop, X_def, Gammas_coop, Gammas_def = np.zeros((N,M)), np.zeros((N,M)), np.zeros((N,M)), np.zeros((N,M))
@@ -164,17 +163,14 @@ def gamma_stats(Gammas_coop, Gammas_def, **kwargs):
 
 """
 This function generates the data required to replicate Figure 1 in the suplemmental material of Lorenzo's Paper.
-
 """
-def fig_1_simulation(N_array, a_1_array, M = 10, steps=int(1e4), x_ini=1.0, a_i=0.5, mu = 1.0, sigma=0.1, cpus = 2, save = False, verbose = False):
+def fig_1_simulation(N_array, a_1_array, M = 10, steps=int(1e4), x_ini=100.0, a_i=0.5, mu = 1.0, sigma=0.1, cpus = 2, save = False, verbose = False):
     for N in N_array:
         for a_1 in a_1_array:
             if verbose: print(f"\nRunning for {N} agents & share parameter {round(a_1, 2)}...")
-            x = np.ones(N) * x_ini
             a = np.ones(N) * a_i
             a[0] = a_1
-
-            _, _, Gammas_coop, Gammas_def = simulate(x,a,mu,sigma, True, steps, M, cpus=cpus, verbose = True)
+            _, _, Gammas_coop, Gammas_def = simulate(N,x_ini,a,mu,sigma, True, steps, M, cpus=cpus, verbose = True)
 
             gamma_coop, gamma_def, gamma_rel, error = gamma_stats(Gammas_coop, Gammas_def, agent_id = 0)
             rel_error = error/gamma_rel
@@ -182,7 +178,7 @@ def fig_1_simulation(N_array, a_1_array, M = 10, steps=int(1e4), x_ini=1.0, a_i=
             if save:
                 import csv
                 row = [N, x_ini, a_i, a_1, mu, sigma, steps, M, gamma_coop, gamma_def, gamma_rel, error, rel_error]
-                with open('./data/relative_long_term_growth_rate.csv', 'a', newline='') as file:
+                with open('./data/fig_1_sup.csv', 'a', newline='') as file:
                     writer = csv.writer(file)
                     writer.writerow(row)
     return
@@ -190,7 +186,6 @@ def fig_1_simulation(N_array, a_1_array, M = 10, steps=int(1e4), x_ini=1.0, a_i=
 This function generates the data required to replicate figure 1a of Lorenzo's Paper.
 """
 def fig_1a_simulation(N, x_ini, a_i, a_1_array, mu,  sigmas, steps = int(1e4), M = 100, cpus = 2, save = False, verbose = False):
-    x = np.ones(N) * x_ini
     a = np.ones(N) * a_i
     L = len(a_1_array)
     Gammas_rel = np.zeros(L)
@@ -200,7 +195,7 @@ def fig_1a_simulation(N, x_ini, a_i, a_1_array, mu,  sigmas, steps = int(1e4), M
         for m, a1 in enumerate(a_1_array):
             if verbose: print(f"Running for sigma={sigma} and a1={a1}...")
             a[0] = a1
-            _, _, Gammas_coop, Gammas_def = simulate(N, x, a, mu, sigma, steps = steps, M = M, cpus = cpus)
+            _, _, Gammas_coop, Gammas_def = simulate(N, x_ini, a, mu, sigma, steps = steps, M = M, cpus = cpus)
             _, _ , gamma_rel, error = gamma_stats(Gammas_coop, Gammas_def, agent_id=0)
             Gammas_rel[m] = gamma_rel
             Errors[m] = error
@@ -217,25 +212,26 @@ def fig_1a_simulation(N, x_ini, a_i, a_1_array, mu,  sigmas, steps = int(1e4), M
 
 if __name__=="__main__":
 
-
-    N=2
-    x_ini=100
-    a_i = 0.5
-    L= 50
-    a_1_array = np.around(np.arange(0, 1.5, 0.02)[1:], 4)
-
-    fig_1a_simulation(N, x_ini, a_i, a_1_array, 1.0, sigmas = [0.1, 0.075, 0.050, 0.025],
-                      steps=int(1e4), M = 10, cpus = 8, save = True, verbose=True)
-
-
-    if False:
+    if True:
         N_array = [2,3,4,6,10]
-        a_1_array = np.arange(0, 1.5, 0.02)[11:]
+        a_1_array = np.arange(0, 1.5, 0.02)[1:]
 
-        N_array = [2]
+        # N_array = [2]
         # a_1_array = [1.4]
 
-        fig_1_simulation(N_array, a_1_array, M=200, steps =int(1e4), save = True, cpus= 4, verbose=True)
+        fig_1_simulation(N_array, a_1_array, M=100, steps =int(1e4), save = True, cpus= 8, verbose=True)
+
+
+    if True:
+        N=2
+        x_ini=100.0
+        a_i = 0.5
+        L= 50
+        a_1_array = np.around(np.arange(0, 1.5, 0.02)[1:], 4)
+
+        fig_1a_simulation(N, x_ini, a_i, a_1_array, 1.0, sigmas = [0.1, 0.075, 0.050, 0.025],
+                        steps=int(1e4), M = 100, cpus = 8, save = True, verbose=True)
+
 
 
     if False:

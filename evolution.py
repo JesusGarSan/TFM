@@ -197,7 +197,7 @@ function: evolve(case, x, a, mu=1, sigma=0.1, steps = 1000)
 Calls the evolution functions with the corresponding
 parameters depending on the specified case.
 """
-def evolve(N=2, x=1.0, a=0.5, mu=1.0, sigma=0.1, defection = True, steps=int(1e4), **kwargs):
+def evolve(N=2, x=100.0, a=0.5, mu=1.0, sigma=0.1, defection = True, steps=int(1e4), **kwargs):
     N, x, a, mu, sigma = _test_agent_number(N, x, a, mu, sigma)
     network = "Adj" in kwargs
     if network: Adj = kwargs['Adj']
@@ -404,7 +404,7 @@ if __name__=="__main__":
     [1,0,0,0,0,0,0],
     ])
     N = 2
-    x0 = 1
+    x0 = 100
     a_i = 0.2
     x_ini = np.ones(N)*x0
     a = np.ones(N) * a_i

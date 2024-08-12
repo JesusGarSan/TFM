@@ -16,8 +16,8 @@ For our current needs we would only need to calculate the gamma_1_rel and error 
 """
     
 
-def compile_data(input, output, parameter_columns):
-    df = pd.read_csv(input)
+def compile_data(input_file, output, parameter_columns):
+    df = pd.read_csv(input_file)
 
     # The methods for grouping are hard coded for now
     grouped = df.groupby(parameter_columns).apply(
@@ -34,12 +34,14 @@ def compile_data(input, output, parameter_columns):
 
 
 # Figure 1 suplemental
-if False:
-    input = "./data/relative_long_term_growth_rate.csv"
+if True:
+    fig, ax = plt.subplots()
+    input_file = "./data/relative_long_term_growth_rate.csv"
+    input_file = "./data/fig_1_sup.csv"
     output = "./data/fig1_compiled.csv"
     parameter_columns = ['N_agents', 'x_ini', 'a_i', 'a_1', 'mu', 'sigma', 'time_steps']
 
-    compile_data(input, output, parameter_columns)
+    compile_data(input_file, output, parameter_columns)
 
 
     df = pd.read_csv(output)
@@ -62,16 +64,17 @@ if False:
     plt.xlabel(r"Share parameter $\alpha_1$")
     plt.ylabel(r"Relative long term growth rate")
     plt.legend()
-    plt.show()
+    plt.show(block=False)
 
     
 # Figure 1a
 if True:
-    input = "./data/fig_1a.csv"
+    fig, ax = plt.subplots()
+    input_file = "./data/fig_1a.csv"
     output = "./data/fig1a_compiled.csv"
     parameter_columns = ['N_agents', 'x_ini', 'a_i', 'a_1', 'mu', 'sigma', 'time_steps']
 
-    compile_data(input, output, parameter_columns)
+    compile_data(input_file, output, parameter_columns)
 
     df = pd.read_csv(output)
     sigmas = pd.unique(df['sigma'])
@@ -81,7 +84,6 @@ if True:
             x = experiment['a_1']
             y = experiment['gamma_1_rel']
             error = experiment['error']
-            print(error/y)
             # plt.scatter(x,y, label=f"{N} agents")
             plt.errorbar(x,y, error, label=r"$\sigma$ = "+ "{:.2f}".format(sigma))
 
@@ -94,4 +96,8 @@ if True:
     plt.xlabel(r"Share parameter $\alpha_1$")
     plt.ylabel(r"Relative long term growth rate")
     plt.legend()
-    plt.show()
+    plt.show(block=False)
+
+
+
+input()
