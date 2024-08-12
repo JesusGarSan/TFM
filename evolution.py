@@ -4,6 +4,36 @@ It takes charge of all the underlaying mathematics
 """
 
 import numpy as np
+"""
+function: _test_agent_number(N, x, a, mu, sigma)
+
+This function checks that the dimensions of the provided arrays is correct.
+If the value provided for one of the arrays is a float value, the funciton will
+convert it into an array of the adequate dimension. 
+This funcion will be called before starting an evolution process.
+
+Inputs: 
+N: Number of agents
+x: Initial value of the agents
+a: Sharing parameter of the agents
+mu: Mean of the random distribution of the agent 
+sigma: Standard deviation of the random distribution of the agent 
+
+"""
+def _test_agent_number(N, x, a, mu, sigma):
+    assert type(N) == int, "The number of agents (N) must be an integer"
+    if type(x) == float: x = np.ones(N)*x
+    if type(a) == float: a = np.ones(N)*a
+    if type(mu) == float: mu = np.ones(N)*mu
+    if type(sigma) == float: sigma = np.ones(N)*sigma
+
+    assert len(x) == N, "x must have the same dimension as the number of agents"
+    assert len(a) == N, "a must have the same dimension as the number of agents"
+    assert len(mu) == N, "mu must have the same dimension as the number of agents"
+    assert len(sigma) == N, "sigma must have the same dimension as the number of agents"
+
+    return N, x, a, mu, sigma
+
 
 """
 function: _evolve_cooperation(x, a, mu=1, sigma=0.1, steps = 1000)
@@ -22,9 +52,7 @@ Returns:
 X: [steps, len(x)] array. Value of the agents along the evolution
 np.zeros((steps+1, N)): We do this for consistency with the defection cases
 """
-def _evolve_cooperation(x, a, mu=1, sigma=0.1, steps = 1000):
-    assert len(x) == len(a), "Número de agentes inconsistente \n Inconsistent number of agents"
-    N = len(x)
+def _evolve_cooperation(N, x, a, mu, sigma, steps):
     time = range(1, steps+1) 
     x_ini = np.copy(x)
 
@@ -32,7 +60,7 @@ def _evolve_cooperation(x, a, mu=1, sigma=0.1, steps = 1000):
     X[0] = x_ini
 
     for i in time:
-        dseta = np.random.normal(mu, sigma, N)
+        dseta = np.random.normal(mu, sigma)
         x = x * dseta*(1 - a) + np.mean(a*x*dseta)
         X[i] = x
             
@@ -58,10 +86,7 @@ Returns:
 X_coop: [steps, len(x)] array. Value of the agents along the cooperative evolution
 X_def: [steps, len(x)] array. Value of the agents along the defective evolution
 """
-def _evolve_defection(x, a, mu=1, sigma=0.1, steps = 1000):
-    assert len(x) == len(a), "Número de agentes inconsistente \n Inconsistent number of agents"
-    N = len(x)
-
+def _evolve_defection(N, x, a, mu, sigma, steps):
     time = range(1, steps+1) 
     x_def = np.copy(x)
     x_ini = np.copy(x)
@@ -70,7 +95,7 @@ def _evolve_defection(x, a, mu=1, sigma=0.1, steps = 1000):
     X_def = np.zeros((steps+1, N))
     X_coop[0], X_def[0] = x_ini, x_ini
     for i in time:
-        dseta = np.random.normal(mu, sigma, N)
+        dseta = np.random.normal(mu, sigma)
         x = x * dseta*(1 - a) + np.mean(a*x*dseta)
         x_def = x_def*dseta
 
@@ -99,9 +124,7 @@ Returns:
 X: [steps, len(x)] array. Value of the agents along the evolution
 np.zeros((steps+1, N)): We do this for consistency with the defection cases
 """
-def _evolve_network_cooperation(Adj, x, a, mu=1, sigma=0.1, steps = 1000):
-    assert len(x) == len(a), "Número de agentes inconsistente \n Inconsistent number of agents"
-    N = len(x)
+def _evolve_network_cooperation(Adj, N, x, a, mu, sigma, steps):
     assert (N,N) == Adj.shape, "Dimensiones de la matriz de adyacencia inconsistentes con el número de agentes \n The dimensions of the adjacency matrix are inconsistent with the number of agents"
 
     time = range(1, steps+1) 
@@ -110,7 +133,7 @@ def _evolve_network_cooperation(Adj, x, a, mu=1, sigma=0.1, steps = 1000):
     X[0] = x_ini
 
     for i in time:
-        dseta = np.random.normal(mu, sigma, N)
+        dseta = np.random.normal(mu, sigma)
         x_aux = x*dseta*a 
         shares = Adj * np.tile(x_aux, (N,1)) #Multiplicación elemento a elemento con x como matriz
         mean = np.divide(shares.sum(axis=1), Adj.sum(axis=1), where=Adj.sum(axis=1) != 0) # Repartimos sólo con los vecinos
@@ -142,9 +165,7 @@ Returns:
 X_coop: [steps, len(x)] array. Value of the agents along the cooperative evolution
 X_def: [steps, len(x)] array. Value of the agents along the defective evolution
 """
-def _evolve_network_defection(Adj, x, a, mu=1, sigma=0.1, steps = 1000):
-    assert len(x) == len(a), "Número de agentes inconsistente \n Inconsistent number of agents"
-    N = len(x)
+def _evolve_network_defection(Adj, N, x, a, mu, sigma, steps):
     assert (N,N) == Adj.shape, "Dimensiones de la matriz de adyacencia inconsistentes con el número de agentes \n The dimensions of the adjacency matrix are inconsistent with the number of agents"
 
     time = range(1, steps+1) 
@@ -156,7 +177,7 @@ def _evolve_network_defection(Adj, x, a, mu=1, sigma=0.1, steps = 1000):
     X_coop[0], X_def[0] = x_ini, x_ini
 
     for i in time:
-        dseta = np.random.normal(mu, sigma, N)
+        dseta = np.random.normal(mu, sigma)
         x_aux = x*dseta*a 
         shares = Adj * np.tile(x_aux, (N,1)) #Multiplicación elemento a elemento con x como matriz
         mean = np.divide(shares.sum(axis=1), Adj.sum(axis=1), where=Adj.sum(axis=1) != 0) # Repartimos sólo con los vecinos
@@ -176,18 +197,19 @@ function: evolve(case, x, a, mu=1, sigma=0.1, steps = 1000)
 Calls the evolution functions with the corresponding
 parameters depending on the specified case.
 """
-def evolve(x, a, mu=1, sigma=0.1, defection = True, steps=int(1e4), **kwargs):
+def evolve(N=2, x=1.0, a=0.5, mu=1.0, sigma=0.1, defection = True, steps=int(1e4), **kwargs):
+    N, x, a, mu, sigma = _test_agent_number(N, x, a, mu, sigma)
     network = "Adj" in kwargs
     if network: Adj = kwargs['Adj']
 
     if defection and network:
-        return _evolve_network_defection(Adj, x, a, mu, sigma, steps)
+        return _evolve_network_defection(Adj, N, x, a, mu, sigma, steps)
     if defection and not network:
-        return _evolve_defection(x, a, mu, sigma, steps)
+        return _evolve_defection(N, x, a, mu, sigma, steps)
     if not defection and network:
-        return _evolve_network_cooperation(Adj, x, a, mu, sigma, steps)
+        return _evolve_network_cooperation(Adj, N, x, a, mu, sigma, steps)
     if not defection and not network:
-        return _evolve_cooperation(x, a, mu, sigma, steps)
+        return _evolve_cooperation(N, x, a, mu, sigma, steps)
 
     raise ValueError(f'Invalid parameters entered')
 
@@ -228,6 +250,7 @@ def selection():
 
 
 """
+WIP
 function optimize_sharing()
 
 Calculates the optimal sharing parameter of an agent to maximize its relative growth rate .
@@ -290,6 +313,9 @@ def optimize_sharing(x_ini, a, delta_a = 0.1, precision = 0.01, max_attempts = 5
 
 
 if __name__=="__main__":
+
+    evolve()
+    quit()
     import plot
     import matplotlib.pyplot as plt
     from simulate import *

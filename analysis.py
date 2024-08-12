@@ -73,4 +73,25 @@ if True:
 
     compile_data(input, output, parameter_columns)
 
+    df = pd.read_csv(output)
+    sigmas = pd.unique(df['sigma'])
 
+    for sigma in sigmas:
+            experiment = df[((df['sigma']==sigma))]
+            x = experiment['a_1']
+            y = experiment['gamma_1_rel']
+            error = experiment['error']
+            print(error/y)
+            # plt.scatter(x,y, label=f"{N} agents")
+            plt.errorbar(x,y, error, label=r"$\sigma$ = "+ "{:.2f}".format(sigma))
+
+            id_max= np.argmax(y)
+            plt.scatter(x.iloc[id_max], y.iloc[id_max])
+
+    ymin, ymax = plt.ylim()
+    plt.ylim(ymin, ymax)
+    plt.vlines(0.5, ymin=ymin, ymax = ymax, color = 'black',)
+    plt.xlabel(r"Share parameter $\alpha_1$")
+    plt.ylabel(r"Relative long term growth rate")
+    plt.legend()
+    plt.show()

@@ -1,6 +1,0 @@
-import multiprocessing
-
-"""
-Vamos a 
-"""
-

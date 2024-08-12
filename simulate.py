@@ -30,8 +30,6 @@ X_def: [len(x_ini), M] array. Last value of the agents after every defective sim
 Gammas_coop: [len(x_ini), M] array. Last value of the logarithmic growth rate in the cooperative case
 Gammas_def: [len(x_ini), M] array. Last value of the logarithmic growth rate in the defective case
 """
-
-
 def _simulate_single(x_ini, a, mu=1, sigma=0.1, defection = True, steps = int(1e4), M=10, verbose=False, **kwargs):
     X_coop, X_def, Gammas_coop, Gammas_def = np.array([np.zeros((N,M))] * 4)
     for m in range(M):
@@ -69,9 +67,8 @@ X_def: [len(x_ini)] array. Last value of the agents after every defective evolut
 Gammas_coop: [len(x_ini)] array. Last value of the logarithmic growth rate in the cooperative case
 Gammas_def: [len(x_ini)] array. Last value of the logarithmic growth rate in the defective case
 """
-def _simulate(x_ini, a, mu, sigma, defection, steps, **kwargs):
-    assert len(x_ini) == len(a), "Número de agentes inconsistente \n Inconsistent number of agents"
-    x_coop, x_def = evolve(x_ini, a, mu, sigma, defection, steps, **kwargs)
+def _simulate(N, x_ini, a, mu, sigma, defection, steps, **kwargs):
+    x_coop, x_def = evolve(N, x_ini, a, mu, sigma, defection, steps, **kwargs)
     X_coop_final = x_coop[-1, :]
     X_def_final = x_def[-1, :]
 
@@ -103,11 +100,11 @@ X_def: [len(x_ini), M] array. Last value of the agents after every defective sim
 Gammas_coop: [len(x_ini), M] array. Last value of the logarithmic growth rate in the cooperative case
 Gammas_def: [len(x_ini), M] array. Last value of the logarithmic growth rate in the defective case
 """
-def simulate(x_ini, a, mu=1, sigma=0.1, defection=True, steps=int(1e4), M=10, cpus = 2, **kwargs):
+def simulate(N, x_ini, a, mu=1, sigma=0.1, defection=True, steps=int(1e4), M=10, cpus = 2, **kwargs):
     import multiprocessing as mp
     from functools import partial # This is used to pass **kwargs to the function in starmap
     assert cpus <= mp.cpu_count(), "Specified number of CPUs is larger than available."
-    if cpus == 1: return _simulate_single(x_ini,a,mu,sigma,defection,steps,M,**kwargs)
+    if cpus == 1: return _simulate_single(N, x_ini,a,mu,sigma,defection,steps,M,**kwargs)
     N = len(x_ini)
     if ('verbose' in kwargs and kwargs['verbose'] == True): verbose = True
     else: verbose= False 
@@ -115,7 +112,7 @@ def simulate(x_ini, a, mu=1, sigma=0.1, defection=True, steps=int(1e4), M=10, cp
 
     if verbose: print(f"Initializing multiprocessing pool for {M} tasks and {cpus} cpus...")
     pool = mp.Pool(cpus)
-    tasks = [(x_ini, a, mu, sigma, defection, steps) for _ in range(M)]
+    tasks = [(N, x_ini, a, mu, sigma, defection, steps) for _ in range(M)]
     if verbose: print("Running simulations...")
     results = pool.starmap(partial(_simulate, **kwargs), tasks)
 
@@ -156,7 +153,8 @@ def gamma_stats(Gammas_coop, Gammas_def, **kwargs):
     gamma_coop = np.mean(Gammas_coop, axis = 1) * 100
     gamma_def = np.mean(Gammas_def, axis = 1) * 100
     gamma_rel = np.mean(Gammas_rel, axis = 1)
-    error = np.std(Gammas_rel, axis = 1)/np.sqrt(len(Gammas_rel))
+    error = np.std(Gammas_rel, axis = 1)/np.sqrt(Gammas_rel.shape[1])
+
 
     if "agent_id" in kwargs:
         id = kwargs["agent_id"]
@@ -202,7 +200,7 @@ def fig_1a_simulation(N, x_ini, a_i, a_1_array, mu,  sigmas, steps = int(1e4), M
         for m, a1 in enumerate(a_1_array):
             if verbose: print(f"Running for sigma={sigma} and a1={a1}...")
             a[0] = a1
-            _, _, Gammas_coop, Gammas_def = simulate(x, a, mu, sigma, steps = steps, M = M, cpus = cpus)
+            _, _, Gammas_coop, Gammas_def = simulate(N, x, a, mu, sigma, steps = steps, M = M, cpus = cpus)
             _, _ , gamma_rel, error = gamma_stats(Gammas_coop, Gammas_def, agent_id=0)
             Gammas_rel[m] = gamma_rel
             Errors[m] = error
@@ -224,9 +222,10 @@ if __name__=="__main__":
     x_ini=100
     a_i = 0.5
     L= 50
-    a_1_array = np.arange(0, 1.5, 0.1)[1:]
+    a_1_array = np.around(np.arange(0, 1.5, 0.02)[1:], 4)
+
     fig_1a_simulation(N, x_ini, a_i, a_1_array, 1.0, sigmas = [0.1, 0.075, 0.050, 0.025],
-                      steps=int(1e4), M = 10, cpus = 6, save = True, verbose=True)
+                      steps=int(1e4), M = 10, cpus = 8, save = True, verbose=True)
 
 
     if False:
