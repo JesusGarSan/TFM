@@ -155,7 +155,7 @@ def gamma_stats(Gammas_coop, Gammas_def, **kwargs):
     Gammas_rel = (Gammas_coop - Gammas_def) * 100
     gamma_coop = np.mean(Gammas_coop, axis = 1) * 100
     gamma_def = np.mean(Gammas_def, axis = 1) * 100
-    gamma_rel = np.mean(Gammas_rel)
+    gamma_rel = np.mean(Gammas_rel, axis = 1)
     error = np.std(Gammas_rel, axis = 1)/np.sqrt(len(Gammas_rel))
 
     if "agent_id" in kwargs:
@@ -224,9 +224,9 @@ if __name__=="__main__":
     x_ini=100
     a_i = 0.5
     L= 50
-    a_1_array = np.linspace(0, 1.5, L+1, )[1:]
+    a_1_array = np.arange(0, 1.5, 0.1)[1:]
     fig_1a_simulation(N, x_ini, a_i, a_1_array, 1.0, sigmas = [0.1, 0.075, 0.050, 0.025],
-                      steps=int(1e4), M = 200, cpus = 6, save = True, verbose=True)
+                      steps=int(1e4), M = 10, cpus = 6, save = True, verbose=True)
 
 
     if False:
