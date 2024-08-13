@@ -65,6 +65,22 @@ def _evolve_cooperation(N, x, a, mu, sigma, steps):
         X[i] = x
             
     return X, np.zeros((steps+1, N))
+def _evolve_cooperation(N, x, a, mu, sigma, steps, gen_freq):
+    time = range(1, steps+1) 
+    x_ini = np.copy(x)
+
+    X = np.zeros((steps+1, N))
+    X[0] = x_ini
+
+    for i in time:
+        if i%gen_freq == 0:
+            x, a = next_gen(x, a, 0.5)
+            print(np.sort(a)) 
+        dseta = np.random.normal(mu, sigma)
+        x = x * dseta*(1 - a) + np.mean(a*x*dseta)
+        X[i] = x
+            
+    return X, np.zeros((steps+1, N))
 
 """
 function: _evolve_defection(x, a, mu=1, sigma=0.1, steps = 1000)
@@ -238,6 +254,28 @@ def get_growth(X):
 
 
 """
+function: repopulate()
+"""
+def next_gen(x, a, filter=0.5):
+    # kill
+    death_toll = int(len(x) * filter)
+    id_sorted = np.argsort(x)  # Ordena los índices según los valores en x
+
+    x = x[id_sorted]  # Ordena x según los índices
+    a = a[id_sorted]  # Ordena a según los índices
+
+    # New gen
+    survivors = x[death_toll:]  # Valores de x que sobrevivirán
+    survivors_a = a[death_toll:]  # Valores correspondientes en a
+
+    parents = (np.random.rand(death_toll) * len(survivors)).astype(int)
+    childs_a = survivors_a[parents] * np.random.uniform(1/1.1, 1.1)
+    x[:death_toll] = survivors[parents]
+    a[:death_toll] = childs_a
+
+    return x, a
+        
+"""
 function: selection()
 
 We use this function to discard the worst performing agents every few steps
@@ -313,6 +351,19 @@ def optimize_sharing(x_ini, a, delta_a = 0.1, precision = 0.01, max_attempts = 5
 
 
 if __name__=="__main__":
+    N = 6
+    x = np.ones(N) * 10000.0
+    a = np.linspace(0.8, 0.9, N)
+    print(a) 
+
+    gen_freq = 100 # Every 1000 steps a new generation happens
+
+    X, _ = _evolve_cooperation(N, x, a, 1.005, 0.1, int(2e4), gen_freq )
+    print(X[-1])
+    import plot
+    plot.evolution(X)
+
+    quit()
 
     evolve()
     quit()

@@ -193,9 +193,9 @@ def fig_1a_simulation(N, x_ini, a_i, a_1_array, mu,  sigmas, steps = int(1e4), M
     
     for sigma in sigmas:
         for m, a1 in enumerate(a_1_array):
-            if verbose: print(f"Running for sigma={sigma} and a1={a1}...")
+            if verbose: print(f"\nRunning for sigma={sigma} & share parameter {a1}...")
             a[0] = a1
-            _, _, Gammas_coop, Gammas_def = simulate(N, x_ini, a, mu, sigma, steps = steps, M = M, cpus = cpus)
+            _, _, Gammas_coop, Gammas_def = simulate(N, x_ini, a, mu, sigma, steps = steps, M = M, cpus = cpus, verbose = True)
             _, _ , gamma_rel, error = gamma_stats(Gammas_coop, Gammas_def, agent_id=0)
             Gammas_rel[m] = gamma_rel
             Errors[m] = error
@@ -211,26 +211,27 @@ def fig_1a_simulation(N, x_ini, a_i, a_1_array, mu,  sigmas, steps = int(1e4), M
 
 
 if __name__=="__main__":
-
-    if True:
-        N_array = [2,3,4,6,10]
-        a_1_array = np.arange(0, 1.5, 0.02)[1:]
-
-        # N_array = [2]
-        # a_1_array = [1.4]
-
-        fig_1_simulation(N_array, a_1_array, M=100, steps =int(1e4), save = True, cpus= 8, verbose=True)
-
-
+    # Fig 1a
     if True:
         N=2
         x_ini=100.0
         a_i = 0.5
-        L= 50
+        a_1_array = np.around(np.arange(0, 1.5, 0.02)[1:], 4)
+        sigmas = [0.1, 0.075, 0.050, 0.025]
+        fig_1a_simulation(N, x_ini, a_i, a_1_array, 1.0, sigmas = sigmas,
+                        steps=int(1e4), M = 500, cpus = 8, save = True, verbose=True)
+        
+    # Fig 1 suplementary
+    if True:
+        N_array = [2,3,4,6,10]
         a_1_array = np.around(np.arange(0, 1.5, 0.02)[1:], 4)
 
-        fig_1a_simulation(N, x_ini, a_i, a_1_array, 1.0, sigmas = [0.1, 0.075, 0.050, 0.025],
-                        steps=int(1e4), M = 100, cpus = 8, save = True, verbose=True)
+        # N_array = [2]
+        # a_1_array = [1.4]
+
+        fig_1_simulation(N_array, a_1_array, M=300, steps =int(1e4), save = True, cpus= 8, verbose=True)
+
+
 
 
 
