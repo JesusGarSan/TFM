@@ -78,31 +78,49 @@ mu: mean of the normal distribution used for the stochasticity
 sigma: Standard deviation of the normal distribution used for the stochasticity
 steps: Number of time steps to consider.
 new_a: Parameters to consider if a is going to be updated each step
-generation: Parameters to consider if biological evolution is going to be considered
+new_generation: Parameters to consider if biological evolution is going to be considered
 
 Returns:
 X_coop: [steps, len(x)] array. Value of the agents along the cooperative evolution
 X_def: [steps, len(x)] array. Value of the agents along the defective evolution
 """
-def evolve(N=2, x=100.0, a=0.5, mu=1.0, sigma=0.1, steps=int(1e4), new_a = False, generation = False):
+def evolve(N=2, x=100.0, a=0.5, mu=1.0, sigma=0.1, steps=int(1e4), new_a = False, new_generation = False):
     N, x, a, mu, sigma = _test_agent_number(N, x, a, mu, sigma)
+    if new_generation: gen_steps = new_generation[0]
     time = range(1, steps+1) 
     x_def = np.copy(x)
     x_ini = np.copy(x)
 
-    X_coop = np.zeros((steps+1, N))
-    X_def = np.zeros((steps+1, N))
-    X_coop[0], X_def[0] = x_ini, x_ini
+    # X_coop = np.zeros((steps+1, N))
+    # X_def = np.zeros((steps+1, N))
+    # X_coop[0], X_def[0] = x_ini, x_ini
+
+    stats = {
+        "X_coop":      np.zeros((steps+1, N)),
+        "X_def":       np.zeros((steps+1, N)),
+        "a_array":     np.zeros((steps+1, N)),
+        "mu_array":    np.zeros((steps+1, N)),
+        "sigma_array": np.zeros((steps+1, N)),
+    }
+    stats["X_coop"][0], stats["X_def"][0] = x_ini, x_def
+    stats["a_array"][0], stats["mu_array"][0], stats["sigma_array"][0] = a, mu, sigma
+
     for i in time:
-        if new_a: a = update_a(*tuple((a,x) + new_a))
+        if new_a: a = update_a(*((a,x) + new_a))
+        if new_generation and i%gen_steps == 0:
+            x, a, mu, sigma = next_gen(*(x,a,mu,sigma)+new_generation[1:])
         dseta = np.random.normal(mu, sigma)
         x = x * dseta*(1 - a) + np.mean(a*x*dseta)
         x_def = x_def*dseta
 
-        X_coop[i] = x
-        X_def[i] = x_def
-            
-    return X_coop, X_def
+        # X_coop[i] = x
+        # X_def[i] = x_def
+
+        stats["X_coop"][i] = x
+        stats["X_def"][i] = x_def
+        stats["a_array"][i], stats["mu_array"][i], stats["sigma_array"][i] = a, mu, sigma
+
+    return stats
 
 
 
@@ -126,14 +144,15 @@ mu: mean of the normal distribution used for the stochasticity
 sigma: Standard deviation of the normal distribution used for the stochasticity
 steps: Number of time steps to consider.
 new_a: Parameters to consider if a is going to be updated each step
-generation: Parameters to consider if biological evolution is going to be consideredr.
+new_generation: Parameters to consider if biological evolution is going to be consideredr.
 
 Returns:
 X_coop: [steps, len(x)] array. Value of the agents along the cooperative evolution
 X_def: [steps, len(x)] array. Value of the agents along the defective evolution
 """
-def evolve_network(Adj, N=2, x=100.0, a=0.5, mu=1.0, sigma=0.1, steps=int(1e4), new_a = False, generation = False):
+def evolve_network(Adj, N=2, x=100.0, a=0.5, mu=1.0, sigma=0.1, steps=int(1e4), new_a = False, new_generation = False):
     N, x, a, mu, sigma = _test_agent_number(N, x, a, mu, sigma)
+    if new_generation: gen_steps = new_generation[0]
     assert (N,N) == Adj.shape, "Dimensiones de la matriz de adyacencia inconsistentes con el número de agentes \n The dimensions of the adjacency matrix are inconsistent with the number of agents"
 
     time = range(1, steps+1) 
@@ -145,7 +164,8 @@ def evolve_network(Adj, N=2, x=100.0, a=0.5, mu=1.0, sigma=0.1, steps=int(1e4), 
     X_coop[0], X_def[0] = x_ini, x_ini
 
     for i in time:
-        if new_a: a = update_a(*tuple((a,x) + new_a))
+        if new_a: a = update_a(*((a,x) + new_a))
+        if new_generation and i%gen_steps: x, a, mu, sigma = next_gen(*(x,a,mu,sigma)+new_generation[1:])
         dseta = np.random.normal(mu, sigma)
         x_aux = x*dseta*a 
         shares = Adj * np.tile(x_aux, (N,1)) #Multiplicación elemento a elemento con x como matriz
@@ -181,6 +201,47 @@ def get_growth(X):
     for i in time:
         Gamma[i] = np.log(X[i,:]/x_ini)/i
     return Gamma
+
+
+
+"""
+function: next_gen()
+"""
+def next_gen(x, a, mu, sigma, heritage=['x', 'a', 'mu', 'sigma', 'gamma'], variance = [0.1, 0.1], filter=0.5, mutation = 0.0):
+
+    # Best performing agents
+    id_sorted = np.argsort(x)  
+    x     = x[id_sorted]  
+    a     = a[id_sorted]  
+    mu    = mu[id_sorted]  
+    sigma = sigma[id_sorted]  
+
+    # Survivors
+    death_toll = int(len(x) * filter)
+    survivors       = x[death_toll:] 
+    survivors_a     = a[death_toll:]  
+    survivors_mu    = mu[death_toll:]  
+    survivors_sigma = sigma[death_toll:]  
+
+
+    # Survivors that produc offspring
+    parents = (np.random.rand(death_toll) * len(survivors)).astype(int)
+
+    # Hereditary characteristics of the offspring
+    if 'x' in heritage: x[:death_toll] = survivors[parents]
+
+    if 'a' in heritage:a[:death_toll] = survivors_a[parents] * np.random.uniform(1-variance[0], 1+variance[1]) + np.random.normal(size=len(parents))*mutation
+    else: a[:death_toll] = survivors_a[parents]
+    a = np.clip(a, 0, 1)
+
+    if 'mu' in heritage: mu[:death_toll] = survivors_mu[parents] * np.random.uniform(1-variance[0], 1+variance[1])
+    else: mu[:death_toll] = survivors_mu[parents]
+
+    if 'sigma' in heritage: sigma[:death_toll] = survivors_sigma[parents] * np.random.uniform(1-variance[0], 1+variance[1])
+    else: sigma[:death_toll] = survivors_sigma[parents]
+
+
+    return x, a, mu, sigma
 
 
 """
@@ -244,43 +305,33 @@ def optimize_sharing(x_ini, a, delta_a = 0.1, precision = 0.01, max_attempts = 5
     # If the result is not found within the maximum number of steps allowed, we return what we got
     return a[agent_id], m, A, Delta_gamma, Trend, Delta_a
 
-
-#### NATURAL SELECTION ####
-def next_gen(x, a, mu, sigma, variance = 0.1, filter=0.5):
-
-    death_toll = int(len(x) * filter)
-    id_sorted = np.argsort(x)  # Ordena los índices según los valores en x
-
-    x     = x[id_sorted]  
-    a     = a[id_sorted]  
-    mu    = mu[id_sorted]  
-    sigma = sigma[id_sorted]  
-
-    # New gen
-    survivors = x[death_toll:] 
-    survivors_a = a[death_toll:]  
-
-    parents = (np.random.rand(death_toll) * len(survivors)).astype(int)
-    print(parents)
-    childs_a = survivors_a[parents] * np.random.uniform(1-variance, 1+variance)
-    x[:death_toll] = survivors[parents]
-    a[:death_toll] = childs_a
-
-    return x, a
-
-def natural_selection(n_generations, steps, variance = 0.1, filter = 0.5):
-    N, x, a, mu, sigma = _test_agent_number(N=10, x=1000, a=0.5, mu=1.0, sigma=0.1)
-    
-    # We need to save the paramters through time
-    for i in range(n_generations):
-        X, _ = evolve(N, x, a, mu, sigma, False, steps)
-        x, a, mu, sigma = next_gen(x, a, mu, sigma, variance, filter)
-
-
-
 if __name__=="__main__":
 
-    X_coop, X_def = evolve()
-    import plot
-    plot.evolution(X_coop)
-    quit()
+    N = 20
+    x = np.ones(N) * 10000.0
+    a = np.linspace(0.1, 0.1, N)
+    # a[-1] = 0.5
+
+    import matplotlib.pyplot as plt
+    np.random.seed(123)
+    stats = evolve(N, x, a, mu=1.00, steps= int(1e5), new_generation=(int(1e2), ['a'], [0.01, 0.1], 0.2, ))
+    print(f" Total x: {round(np.sum(stats["X_coop"][-1, :]), 8)}. Average a: {np.mean(stats["a_array"][-1])}")
+    fig, ax = plt.subplots()
+    plt.plot(stats["a_array"][101:, :], lw=0.05)
+    plt.plot(np.mean(stats["a_array"][101:, :], axis=1), lw=1)
+    plt.show(block=False)
+    fig, ax = plt.subplots()
+    plt.plot(np.mean(stats["X_coop"], axis=1))
+    plt.show(block=False)
+
+    np.random.seed(123)
+    stats = evolve(N, x, a, mu=1.00, steps= int(1e5), new_generation=(int(1e2), ['a'], [0.1, 0.1], 0.2, ))
+    print(f" Total x: {round(np.sum(stats["X_coop"][-1, :]), 8)}. Average a: {np.mean(stats["a_array"][-1])}")
+    fig, ax = plt.subplots()
+    plt.plot(stats["a_array"][101:, :], lw=0.05)
+    plt.plot(np.mean(stats["a_array"][101:, :], axis=1), lw=1)
+    plt.show(block=False)
+    fig, ax = plt.subplots()
+    plt.plot(np.mean(stats["X_coop"], axis=1))
+    plt.show(block=False)
+    input()

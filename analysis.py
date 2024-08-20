@@ -11,6 +11,7 @@ N_simulations determines how "powerful" the experiment was. AKA how many simulat
 The results of the simulations are:
 gamma_1, gamma_1_def, gamma_1_rel, error, rel_error
 
+    
 If two experiments have the same parameters we can combine their results to get a singular more powerful one.
 For our current needs we would only need to calculate the gamma_1_rel and error of the combined experiment
 """
@@ -86,7 +87,7 @@ if True:
             y = experiment['gamma_1_rel']
             error = experiment['error']
             # plt.scatter(x,y, label=f"{N} agents")
-            plt.errorbar(x,y, error, label=r"$\sigma$ = "+ "{:.2f}".format(sigma))
+            plt.errorbar(x,y, error, label=r"$\sigma$ = "+ "{:.3f}".format(sigma))
 
             id_max= np.argmax(y)
             plt.scatter(x.iloc[id_max], y.iloc[id_max])

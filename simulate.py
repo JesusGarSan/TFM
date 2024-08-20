@@ -1,6 +1,7 @@
 """
 This module contains all the functions needed to simulate the
 evolution of agent models, saving the results obtained.
+It includes parallelization features
 """
 import numpy as  np
 from evolution import evolve, get_growth
@@ -210,7 +211,12 @@ def fig_1a_simulation(N, x_ini, a_i, a_1_array, mu,  sigmas, steps = int(1e4), M
     return
 
 
+
+
+
 if __name__=="__main__":
+    natural_selection()
+    quit()
     # Fig 1a
     if True:
         N=2
@@ -219,7 +225,7 @@ if __name__=="__main__":
         a_1_array = np.around(np.arange(0, 1.5, 0.02)[1:], 4)
         sigmas = [0.1, 0.075, 0.050, 0.025]
         fig_1a_simulation(N, x_ini, a_i, a_1_array, 1.0, sigmas = sigmas,
-                        steps=int(1e4), M = 500, cpus = 8, save = True, verbose=True)
+                        steps=int(1e4), M = 100, cpus = 7, save = True, verbose=True)
         
     # Fig 1 suplementary
     if True:
@@ -229,7 +235,7 @@ if __name__=="__main__":
         # N_array = [2]
         # a_1_array = [1.4]
 
-        fig_1_simulation(N_array, a_1_array, M=300, steps =int(1e4), save = True, cpus= 8, verbose=True)
+        fig_1_simulation(N_array, a_1_array, M=100, steps =int(1e4), save = True, cpus= 7, verbose=True)
 
 
 
