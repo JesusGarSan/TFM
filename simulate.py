@@ -215,7 +215,32 @@ def fig_1a_simulation(N, x_ini, a_i, a_1_array, mu,  sigmas, steps = int(1e4), M
 
 
 if __name__=="__main__":
-    natural_selection()
+    from evolution import evolve
+
+    N = 10
+    x = np.ones(N) * 10000.0
+    a = np.linspace(0.1, 0.1, N)
+    a = 0.5
+    # a[-1] = 0.5
+
+    import matplotlib.pyplot as plt
+    np.random.seed(123)
+    stats = evolve(N, x, a, mu=1.00, steps= int(1e4), new_a=('greedy', 6.8))
+    fig, ax = plt.subplots()
+    plt.plot(stats["X_coop"])
+    fig, ax = plt.subplots()
+    plt.plot(stats["a_array"])
+    plt.show(block=False)
+
+    np.random.seed(123)
+    stats = evolve(N, x, a, mu=1.00, steps= int(1e4), new_a=('greedy', 8))
+    fig, ax = plt.subplots()
+    plt.plot(stats["X_coop"])
+    fig, ax = plt.subplots()
+    plt.plot(stats["a_array"])
+    plt.show(block=False)
+
+    input()
     quit()
     # Fig 1a
     if True:
