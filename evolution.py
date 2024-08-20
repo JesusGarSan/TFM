@@ -91,10 +91,6 @@ def evolve(N=2, x=100.0, a=0.5, mu=1.0, sigma=0.1, steps=int(1e4), new_a = False
     x_def = np.copy(x)
     x_ini = np.copy(x)
 
-    # X_coop = np.zeros((steps+1, N))
-    # X_def = np.zeros((steps+1, N))
-    # X_coop[0], X_def[0] = x_ini, x_ini
-
     stats = {
         "X_coop":      np.zeros((steps+1, N)),
         "X_def":       np.zeros((steps+1, N)),
@@ -112,9 +108,6 @@ def evolve(N=2, x=100.0, a=0.5, mu=1.0, sigma=0.1, steps=int(1e4), new_a = False
         dseta = np.random.normal(mu, sigma)
         x = x * dseta*(1 - a) + np.mean(a*x*dseta)
         x_def = x_def*dseta
-
-        # X_coop[i] = x
-        # X_def[i] = x_def
 
         stats["X_coop"][i] = x
         stats["X_def"][i] = x_def
@@ -159,13 +152,20 @@ def evolve_network(Adj, N=2, x=100.0, a=0.5, mu=1.0, sigma=0.1, steps=int(1e4), 
     x_def = np.copy(x)
     x_ini = np.copy(x)
 
-    X_coop = np.zeros((steps+1, N))
-    X_def = np.zeros((steps+1, N))
-    X_coop[0], X_def[0] = x_ini, x_ini
+    stats = {
+        "X_coop":      np.zeros((steps+1, N)),
+        "X_def":       np.zeros((steps+1, N)),
+        "a_array":     np.zeros((steps+1, N)),
+        "mu_array":    np.zeros((steps+1, N)),
+        "sigma_array": np.zeros((steps+1, N)),
+    }
+    stats["X_coop"][0], stats["X_def"][0] = x_ini, x_def
+    stats["a_array"][0], stats["mu_array"][0], stats["sigma_array"][0] = a, mu, sigma
 
     for i in time:
         if new_a: a = update_a(*((a,x) + new_a))
-        if new_generation and i%gen_steps: x, a, mu, sigma = next_gen(*(x,a,mu,sigma)+new_generation[1:])
+        if new_generation and i%gen_steps == 0:
+            x, a, mu, sigma = next_gen(*(x,a,mu,sigma)+new_generation[1:])
         dseta = np.random.normal(mu, sigma)
         x_aux = x*dseta*a 
         shares = Adj * np.tile(x_aux, (N,1)) #Multiplicación elemento a elemento con x como matriz
@@ -173,10 +173,11 @@ def evolve_network(Adj, N=2, x=100.0, a=0.5, mu=1.0, sigma=0.1, steps=int(1e4), 
         x = x * dseta*(1 - a) + mean
         x_def = x_def*dseta
 
-        X_coop[i] = x
-        X_def[i] = x_def
-            
-    return X_coop, X_def
+        stats["X_coop"][i] = x
+        stats["X_def"][i] = x_def
+        stats["a_array"][i], stats["mu_array"][i], stats["sigma_array"][i] = a, mu, sigma
+
+    return stats
 
 
 
