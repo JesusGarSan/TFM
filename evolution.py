@@ -22,68 +22,47 @@ sigma: Standard deviation of the random distribution of the agent
 """
 def _test_agent_number(N, x, a, mu, sigma):
     assert type(N) == int, "The number of agents (N) must be an integer"
-    if type(x) == float: x = np.ones(N)*x
-    if type(a) == float: a = np.ones(N)*a
-    if type(mu) == float: mu = np.ones(N)*mu
+    if type(x)     == float: x = np.ones(N)*x
+    if type(a)     == float: a = np.ones(N)*a
+    if type(mu)    == float: mu = np.ones(N)*mu
     if type(sigma) == float: sigma = np.ones(N)*sigma
 
-    assert len(x) == N, "x must have the same dimension as the number of agents"
-    assert len(a) == N, "a must have the same dimension as the number of agents"
-    assert len(mu) == N, "mu must have the same dimension as the number of agents"
+    assert len(x)     == N, "x must have the same dimension as the number of agents"
+    assert len(a)     == N, "a must have the same dimension as the number of agents"
+    assert len(mu)    == N, "mu must have the same dimension as the number of agents"
     assert len(sigma) == N, "sigma must have the same dimension as the number of agents"
 
     return N, x, a, mu, sigma
 
-
 """
-function: _evolve_cooperation(x, a, mu=1, sigma=0.1, steps = 1000)
+function: update_a
 
-Evolution of the Stochastic Multiplicative Growth process
-This evolution function considers that all agents play for the entire evolution period.
+Updates the value of the sharing parameter a depending on the value of the agents x.
 
+inputs:
 Inputs:
-x: Initial values of the agents
 a: Sharing parameters of each agent
-mu: mean of the normal distribution used for the stochasticity
-sigma: Standard deviation of the normal distribution used for the stochasticity
-steps: Number of time steps to consider.
+x: Values of the agents
+mode: Type of regime to consider when updating a
+exponent: Exponent to use in the regime. It measures the magnitud of the regime
 
 Returns:
-X: [steps, len(x)] array. Value of the agents along the evolution
-np.zeros((steps+1, N)): We do this for consistency with the defection cases
+a: new sharing aprameters of the agents
 """
-def _evolve_cooperation(N, x, a, mu, sigma, steps):
-    time = range(1, steps+1) 
-    x_ini = np.copy(x)
 
-    X = np.zeros((steps+1, N))
-    X[0] = x_ini
+def update_a(a, x, mode, exponent):
+    X_total = np.sum(x)
+    X_rel = x/X_total
+    if mode =='greedy':   return (1-X_rel)**exponent
+    if mode =='generous': return (X_rel)**exponent
 
-    for i in time:
-        dseta = np.random.normal(mu, sigma)
-        x = x * dseta*(1 - a) + np.mean(a*x*dseta)
-        X[i] = x
-            
-    return X, np.zeros((steps+1, N))
-def _evolve_cooperation(N, x, a, mu, sigma, steps, gen_freq):
-    time = range(1, steps+1) 
-    x_ini = np.copy(x)
+    from warnings import warn
+    warn(f"Warning: {mode} does not correspond to any of the modes implemented in update_a. Returning original a array")
+    return a
 
-    X = np.zeros((steps+1, N))
-    X[0] = x_ini
-
-    for i in time:
-        if i%gen_freq == 0:
-            x, a = next_gen(x, a, 0.5)
-            print(np.sort(a)) 
-        dseta = np.random.normal(mu, sigma)
-        x = x * dseta*(1 - a) + np.mean(a*x*dseta)
-        X[i] = x
-            
-    return X, np.zeros((steps+1, N))
 
 """
-function: _evolve_defection(x, a, mu=1, sigma=0.1, steps = 1000)
+function: evolve(x, a, mu=1, sigma=0.1, steps = 1000)
 
 Evolution of the Stochastic Multiplicative Growth process compared to the defective case.
 This evolution function considers that all agents play for the entire evolution period.
@@ -92,17 +71,21 @@ defection using the same random numbers. This way we can compare the evolution i
 full defection mode compared to a cooperative case.
 
 Inputs:
+N: Number of agents
 x: Initial values of the agents
 a: Sharing parameters of each agent
 mu: mean of the normal distribution used for the stochasticity
 sigma: Standard deviation of the normal distribution used for the stochasticity
 steps: Number of time steps to consider.
+new_a: Parameters to consider if a is going to be updated each step
+generation: Parameters to consider if biological evolution is going to be considered
 
 Returns:
 X_coop: [steps, len(x)] array. Value of the agents along the cooperative evolution
 X_def: [steps, len(x)] array. Value of the agents along the defective evolution
 """
-def _evolve_defection(N, x, a, mu, sigma, steps):
+def evolve(N=2, x=100.0, a=0.5, mu=1.0, sigma=0.1, steps=int(1e4), new_a = False, generation = False):
+    N, x, a, mu, sigma = _test_agent_number(N, x, a, mu, sigma)
     time = range(1, steps+1) 
     x_def = np.copy(x)
     x_ini = np.copy(x)
@@ -111,6 +94,7 @@ def _evolve_defection(N, x, a, mu, sigma, steps):
     X_def = np.zeros((steps+1, N))
     X_coop[0], X_def[0] = x_ini, x_ini
     for i in time:
+        if new_a: a = update_a(*tuple((a,x) + new_a))
         dseta = np.random.normal(mu, sigma)
         x = x * dseta*(1 - a) + np.mean(a*x*dseta)
         x_def = x_def*dseta
@@ -120,46 +104,11 @@ def _evolve_defection(N, x, a, mu, sigma, steps):
             
     return X_coop, X_def
 
+
+
+
 """
 function: evolve_network(Adj, x, a, mu=1, sigma=0.1, steps = 1000)
-
-Evolution of the Stochastic Multiplicative Growth process in a network.
-This evolution function considers that all agents play for the entire evolution period.
-The sharing parameter of an agent is applied to every one of its links, so that the total amount
-of value it shares is its share parameter times its number of links.
-
-Inputs:
-Adj: Adjecency Matrix.
-x: Initial values of the agents
-a: Sharing parameters of each agent
-mu: mean of the normal distribution used for the stochasticity
-sigma: Standard deviation of the normal distribution used for the stochasticity
-steps: Number of time steps to consider.
-
-Returns:
-X: [steps, len(x)] array. Value of the agents along the evolution
-np.zeros((steps+1, N)): We do this for consistency with the defection cases
-"""
-def _evolve_network_cooperation(Adj, N, x, a, mu, sigma, steps):
-    assert (N,N) == Adj.shape, "Dimensiones de la matriz de adyacencia inconsistentes con el número de agentes \n The dimensions of the adjacency matrix are inconsistent with the number of agents"
-
-    time = range(1, steps+1) 
-    x_ini = np.copy(x)
-    X = np.zeros((steps+1, N))
-    X[0] = x_ini
-
-    for i in time:
-        dseta = np.random.normal(mu, sigma)
-        x_aux = x*dseta*a 
-        shares = Adj * np.tile(x_aux, (N,1)) #Multiplicación elemento a elemento con x como matriz
-        mean = np.divide(shares.sum(axis=1), Adj.sum(axis=1), where=Adj.sum(axis=1) != 0) # Repartimos sólo con los vecinos
-        x = x * dseta*(1 - a) + mean
-        X[i] = x
-            
-    return X, np.zeros((steps+1, N))
-
-"""
-function: _evolve_network_defection(Adj, x, a, mu=1, sigma=0.1, steps = 1000)
 
 Evolution of the Stochastic Multiplicative Growth process compared to the defective case in a network.
 This evolution function considers that all agents play for the entire evolution period.
@@ -176,12 +125,15 @@ a: Sharing parameters of each agent
 mu: mean of the normal distribution used for the stochasticity
 sigma: Standard deviation of the normal distribution used for the stochasticity
 steps: Number of time steps to consider.
+new_a: Parameters to consider if a is going to be updated each step
+generation: Parameters to consider if biological evolution is going to be consideredr.
 
 Returns:
 X_coop: [steps, len(x)] array. Value of the agents along the cooperative evolution
 X_def: [steps, len(x)] array. Value of the agents along the defective evolution
 """
-def _evolve_network_defection(Adj, N, x, a, mu, sigma, steps):
+def evolve_network(Adj, N=2, x=100.0, a=0.5, mu=1.0, sigma=0.1, steps=int(1e4), new_a = False, generation = False):
+    N, x, a, mu, sigma = _test_agent_number(N, x, a, mu, sigma)
     assert (N,N) == Adj.shape, "Dimensiones de la matriz de adyacencia inconsistentes con el número de agentes \n The dimensions of the adjacency matrix are inconsistent with the number of agents"
 
     time = range(1, steps+1) 
@@ -193,6 +145,7 @@ def _evolve_network_defection(Adj, N, x, a, mu, sigma, steps):
     X_coop[0], X_def[0] = x_ini, x_ini
 
     for i in time:
+        if new_a: a = update_a(*tuple((a,x) + new_a))
         dseta = np.random.normal(mu, sigma)
         x_aux = x*dseta*a 
         shares = Adj * np.tile(x_aux, (N,1)) #Multiplicación elemento a elemento con x como matriz
@@ -205,29 +158,6 @@ def _evolve_network_defection(Adj, N, x, a, mu, sigma, steps):
             
     return X_coop, X_def
 
-
-
-"""
-function: evolve(case, x, a, mu=1, sigma=0.1, steps = 1000)
-
-Calls the evolution functions with the corresponding
-parameters depending on the specified case.
-"""
-def evolve(N=2, x=100.0, a=0.5, mu=1.0, sigma=0.1, defection = True, steps=int(1e4), **kwargs):
-    N, x, a, mu, sigma = _test_agent_number(N, x, a, mu, sigma)
-    network = "Adj" in kwargs
-    if network: Adj = kwargs['Adj']
-
-    if defection and network:
-        return _evolve_network_defection(Adj, N, x, a, mu, sigma, steps)
-    if defection and not network:
-        return _evolve_defection(N, x, a, mu, sigma, steps)
-    if not defection and network:
-        return _evolve_network_cooperation(Adj, N, x, a, mu, sigma, steps)
-    if not defection and not network:
-        return _evolve_cooperation(N, x, a, mu, sigma, steps)
-
-    raise ValueError(f'Invalid parameters entered')
 
 
 """ 
@@ -251,40 +181,6 @@ def get_growth(X):
     for i in time:
         Gamma[i] = np.log(X[i,:]/x_ini)/i
     return Gamma
-
-
-"""
-function: repopulate()
-"""
-def next_gen(x, a, filter=0.5):
-    # kill
-    death_toll = int(len(x) * filter)
-    id_sorted = np.argsort(x)  # Ordena los índices según los valores en x
-
-    x = x[id_sorted]  # Ordena x según los índices
-    a = a[id_sorted]  # Ordena a según los índices
-
-    # New gen
-    survivors = x[death_toll:]  # Valores de x que sobrevivirán
-    survivors_a = a[death_toll:]  # Valores correspondientes en a
-
-    parents = (np.random.rand(death_toll) * len(survivors)).astype(int)
-    childs_a = survivors_a[parents] * np.random.uniform(1/1.1, 1.1)
-    x[:death_toll] = survivors[parents]
-    a[:death_toll] = childs_a
-
-    return x, a
-        
-"""
-function: selection()
-
-We use this function to discard the worst performing agents every few steps
-
-"""
-
-def selection():
-    return
-
 
 
 """
@@ -349,120 +245,42 @@ def optimize_sharing(x_ini, a, delta_a = 0.1, precision = 0.01, max_attempts = 5
     return a[agent_id], m, A, Delta_gamma, Trend, Delta_a
 
 
+#### NATURAL SELECTION ####
+def next_gen(x, a, mu, sigma, variance = 0.1, filter=0.5):
+
+    death_toll = int(len(x) * filter)
+    id_sorted = np.argsort(x)  # Ordena los índices según los valores en x
+
+    x     = x[id_sorted]  
+    a     = a[id_sorted]  
+    mu    = mu[id_sorted]  
+    sigma = sigma[id_sorted]  
+
+    # New gen
+    survivors = x[death_toll:] 
+    survivors_a = a[death_toll:]  
+
+    parents = (np.random.rand(death_toll) * len(survivors)).astype(int)
+    print(parents)
+    childs_a = survivors_a[parents] * np.random.uniform(1-variance, 1+variance)
+    x[:death_toll] = survivors[parents]
+    a[:death_toll] = childs_a
+
+    return x, a
+
+def natural_selection(n_generations, steps, variance = 0.1, filter = 0.5):
+    N, x, a, mu, sigma = _test_agent_number(N=10, x=1000, a=0.5, mu=1.0, sigma=0.1)
+    
+    # We need to save the paramters through time
+    for i in range(n_generations):
+        X, _ = evolve(N, x, a, mu, sigma, False, steps)
+        x, a, mu, sigma = next_gen(x, a, mu, sigma, variance, filter)
+
+
 
 if __name__=="__main__":
-    N = 6
-    x = np.ones(N) * 10000.0
-    a = np.linspace(0.8, 0.9, N)
-    print(a) 
 
-    gen_freq = 100 # Every 1000 steps a new generation happens
-
-    X, _ = _evolve_cooperation(N, x, a, 1.005, 0.1, int(2e4), gen_freq )
-    print(X[-1])
+    X_coop, X_def = evolve()
     import plot
-    plot.evolution(X)
-
+    plot.evolution(X_coop)
     quit()
-
-    evolve()
-    quit()
-    import plot
-    import matplotlib.pyplot as plt
-    from simulate import *
-    np.random.seed(124)
-    N = 10
-    x = np.ones(N)
-    a = np.ones(N)*0.5
-    a[0] = 0.3
-    optimal_a, steps, A, Delta_gamma, Trend, Delta_a = optimize_sharing(x, a, max_steps=30, cpus=7, verbose=True)
-
-    print(optimal_a, steps)
-
-    plt.plot(A, label=r"Optimal Sharing parameter")
-    plt.plot(Delta_gamma, label=r"$\Delta \gamma$")
-    plt.plot(Trend, label ='trend')
-    plt.plot(Delta_a, label=r'$\Delta a$')
-    plt.xlim(0, steps-1)
-    plt.legend()
-    plt.show()
-    quit()
-
-
-    trend = +1
-    delta = 0.01
-
-    M = 100
-    A = np.zeros(M)
-    Trend = np.zeros(M)
-    Gammas_rel = np.zeros(M)
-
-    N = 2
-    x = np.ones(N)
-    a = np.ones(N)*0.5
-    a[0] = .45
-    A = np.zeros(100)
-    A[0] = a[0]
-    # np.random.seed(123)
-    old_gamma_rel = 0
-    delta_gamma = 0
-    for i in range(M):
-        print(f"Iteration {i}, {round(a[0], 2)}, {old_gamma_rel}, {delta_gamma}")
-        # X, X_def = evolve(x, a, 1.0, 0.1, steps=10000)
-        _, _, Gammas_coop, Gammas_def=  simulate(x, a, 1, 0.1, M = 50, cpus=7)
-
-        gamma_rel, _ = gamma_stats(Gammas_coop, Gammas_def)
-        delta_gamma = gamma_rel-old_gamma_rel
-
-        if delta_gamma > 0: 
-            a[0] += trend*delta
-        if delta_gamma < 0: 
-            trend *= -1
-            a[0] += trend*delta
-
-        a[0] = np.clip(a[0], 0, 1)
-
-        old_gamma_rel = gamma_rel
-        A[i] = a[0]
-        Trend[i] = trend
-        Gammas_rel[i] = gamma_rel
-    
-    plt.plot(A)
-    plt.show(block=False)
-    
-    plt.plot(Trend)
-    plt.show(block=False)
-    
-    plt.plot(Gammas_rel)
-    plt.show(block=False)
-
-    input()
-
-
-    # plt.plot(Gamma_coop - Gamma_def)
-    # plt.show(block=False)
-    # print(Gamma_def.shape)
-    # input()
-
-    quit()
-    Adj = np.array([
-    [0,1,1,1,1,1,1],
-    [1,0,1,0,0,0,0],
-    [1,1,0,1,0,0,0],
-    [1,0,1,0,0,0,0],
-    [1,0,0,0,0,1,0],
-    [1,0,0,0,1,0,0],
-    [1,0,0,0,0,0,0],
-    ])
-    N = 2
-    x0 = 100
-    a_i = 0.2
-    x_ini = np.ones(N)*x0
-    a = np.ones(N) * a_i
-    steps = int(1e4)
-    mu = 1
-    sigma = 0.1 
-    X, X_def = evolve(x_ini, a, defection=False)
-    # X=X_def
-    print(X.shape)
-    plot.evolution(X)
