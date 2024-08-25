@@ -59,9 +59,9 @@ Returns:
 X_coop: [steps, len(x)] array. Value of the agents along the cooperative evolution
 X_def: [steps, len(x)] array. Value of the agents along the defective evolution
 """
-def evolve(N=2, x=100.0, a=0.5, mu=1.0, sigma=0.1, steps=int(1e4), new_a = False, new_generation = False):
+def evolve(N=2, x=100.0, a=0.5, mu=1.0, sigma=0.1, steps=int(1e4), **kwargs):
     N, x, a, mu, sigma = _test_agent_number(N, x, a, mu, sigma)
-    if new_generation: gen_steps = new_generation[0]
+    if "new_generation" in kwargs: gen_steps = kwargs["new_generation"][0]
     time = range(1, steps+1) 
     x_def = np.copy(x)
     x_ini = np.copy(x)
@@ -77,9 +77,9 @@ def evolve(N=2, x=100.0, a=0.5, mu=1.0, sigma=0.1, steps=int(1e4), new_a = False
     stats["a_array"][0], stats["mu_array"][0], stats["sigma_array"][0] = a, mu, sigma
 
     for i in time:
-        if new_a: a = update_a(*((a,x) + new_a))
-        if new_generation and i%gen_steps == 0:
-            x, a, mu, sigma = next_gen(*(x,a,mu,sigma)+new_generation[1:])
+        if "new_a" in kwargs: a = update_a(*((a,x) + kwargs["new_a"]))
+        if "new_generation" in kwargs and i%gen_steps == 0:
+            x, a, mu, sigma = next_gen(*(x,a,mu,sigma)+kwargs["new_generation"][1:])
         dseta = np.random.normal(mu, sigma)
         x = x * dseta*(1 - a) + np.mean(a*x*dseta)
         x_def = x_def*dseta

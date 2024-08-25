@@ -31,12 +31,12 @@ X_def: [len(x_ini), M] array. Last value of the agents after every defective sim
 Gammas_coop: [len(x_ini), M] array. Last value of the logarithmic growth rate in the cooperative case
 Gammas_def: [len(x_ini), M] array. Last value of the logarithmic growth rate in the defective case
 """
-def _simulate_single(x_ini, a, mu=1, sigma=0.1, defection = True, steps = int(1e4), M=10, verbose=False, **kwargs):
+def _simulate_single(x_ini, a, mu=1, sigma=0.1, steps = int(1e4), M=10, verbose=False, **kwargs):
     X_coop, X_def, Gammas_coop, Gammas_def = np.array([np.zeros((N,M))] * 4)
     for m in range(M):
         if verbose: print(f"Running simulation {m+1}...")
 
-        X_coop_final, X_def_final, Gammas_coop_final, Gammas_def_final = _simulate(x_ini, a, mu, sigma, defection, steps, **kwargs)
+        X_coop_final, X_def_final, Gammas_coop_final, Gammas_def_final = _simulate(x_ini, a, mu, sigma, steps, **kwargs)
 
         X_coop[:,m] = X_coop_final
         X_def[:,m] = X_def_final
@@ -57,27 +57,14 @@ x_ini: Initial values of the agents
 a: Sharing parameters of each agent
 mu: mean of the normal distribution used for the stochasticity
 sigma: Standard deviation of the normal distribution used for the stochasticity
-defection: Boolean. Determines wether the comparison with defection will be performed or not
 steps: Number of time steps to consider.
-**kwargs: Adj if network
+**kwargs
 
 Returns:
-(X_coop_final, X_def_final, Gammas_coop_final, Gammas_def_final)
-X_coop: [len(x_ini)] array. Last value of the agents after every cooperative evolution
-X_def: [len(x_ini)] array. Last value of the agents after every defective evolution
-Gammas_coop: [len(x_ini)] array. Last value of the logarithmic growth rate in the cooperative case
-Gammas_def: [len(x_ini)] array. Last value of the logarithmic growth rate in the defective case
+stats: Diccionary with the data regarding the evolution
 """
-def _simulate(N, x_ini, a, mu, sigma, defection, steps, **kwargs):
-    stats = evolve(N, x_ini, a, mu, sigma, defection, steps, **kwargs)
-    x_coop, x_def = stats["X_coop"], stats["X_def"]
-    X_coop_final = x_coop[-1, :]
-    X_def_final = x_def[-1, :]
-
-    Gammas_coop_final = get_growth(x_coop)[-1]
-    Gammas_def_final = get_growth(x_def)[-1]
-    
-    return (X_coop_final, X_def_final, Gammas_coop_final, Gammas_def_final)
+def _simulate(N, x_ini, a, mu, sigma, steps, **kwargs):
+    return evolve(N, x_ini, a, mu, sigma, steps, **kwargs)
 
 """
 function: simulate(x_ini, a, mu=1, sigma=0.1, defection=True, steps=int(1e4), M=10, cpus = 2, **kwargs)
@@ -102,35 +89,30 @@ X_def: [len(x_ini), M] array. Last value of the agents after every defective sim
 Gammas_coop: [len(x_ini), M] array. Last value of the logarithmic growth rate in the cooperative case
 Gammas_def: [len(x_ini), M] array. Last value of the logarithmic growth rate in the defective case
 """
-def simulate(N, x_ini, a, mu=1, sigma=0.1, defection=True, steps=int(1e4), M=10, cpus = 2, **kwargs):
+def simulate(N, x_ini, a, mu=1, sigma=0.1, steps=int(1e4), M=10, cpus = 2, **kwargs):
     import multiprocessing as mp
     from functools import partial # This is used to pass **kwargs to the function in starmap
     assert cpus <= mp.cpu_count(), "Specified number of CPUs is larger than available."
-    if cpus == 1: return _simulate_single(N, x_ini,a,mu,sigma,defection,steps,M,**kwargs)
+    if cpus == 1: return _simulate_single(N, x_ini,a,mu,sigma,steps,M,**kwargs)
     if ('verbose' in kwargs and kwargs['verbose'] == True): verbose = True
     else: verbose= False 
-    X_coop, X_def, Gammas_coop, Gammas_def = np.zeros((N,M)), np.zeros((N,M)), np.zeros((N,M)), np.zeros((N,M))
 
     if verbose: print(f"Initializing multiprocessing pool for {M} tasks and {cpus} cpus...")
     pool = mp.Pool(cpus)
-    tasks = [(N, x_ini, a, mu, sigma, defection, steps) for _ in range(M)]
+    tasks = [(N, x_ini, a, mu, sigma, steps) for _ in range(M)]
     if verbose: print("Running simulations...")
     results = pool.starmap(partial(_simulate, **kwargs), tasks)
 
     if verbose: print(f"Compiling results...")
-    m = 0
-    for X_coop_final, X_def_final, Gammas_coop_final, Gammas_def_final in results:
-        X_coop[:,m] = X_coop_final
-        X_def[:,m] = X_def_final
-        Gammas_coop[:,m] = Gammas_coop_final
-        Gammas_def[:,m] = Gammas_def_final
-        m+=1
+    stats_array = [{}]*M
+    for m, stats in enumerate(results): stats_array[m] = stats
 
     # Cerrar el pool de procesos
     pool.close()
     pool.join()
 
-    return X_coop, X_def, Gammas_coop, Gammas_def
+    return stats_array
+
 
 """
 function: gamma_stats(Gammas_coop, Gammas_def, agent_id =0)
@@ -172,12 +154,15 @@ def fig_1_simulation(N_array, a_1_array, M = 10, steps=int(1e4), x_ini=100.0, a_
             if verbose: print(f"\nRunning for {N} agents & share parameter {round(a_1, 2)}...")
             a = np.ones(N) * a_i
             a[0] = a_1
-            _, _, Gammas_coop, Gammas_def = simulate(N,x_ini,a,mu,sigma, True, steps, M, cpus=cpus, verbose = True)
+            stats_array = simulate(N,x_ini,a,mu,sigma, steps, M, cpus=cpus, verbose = True)
+            Gammas_coop = np.array([get_growth(stats["X_coop"])[-1] for stats in stats_array])
+            Gammas_def  = np.array([get_growth(stats["X_def"]) [-1] for stats in stats_array])
 
             gamma_coop, gamma_def, gamma_rel, error = gamma_stats(Gammas_coop, Gammas_def, agent_id = 0)
             rel_error = error/gamma_rel
 
             if save:
+                if verbose: print("Saving results...")
                 import csv
                 row = [N, x_ini, a_i, a_1, mu, sigma, steps, M, gamma_coop, gamma_def, gamma_rel, error, rel_error]
                 with open('./data/fig_1_sup.csv', 'a', newline='') as file:
@@ -197,13 +182,18 @@ def fig_1a_simulation(N, x_ini, a_i, a_1_array, mu,  sigmas, steps = int(1e4), M
         for m, a1 in enumerate(a_1_array):
             if verbose: print(f"\nRunning for sigma={sigma} & share parameter {a1}...")
             a[0] = a1
-            _, _, Gammas_coop, Gammas_def = simulate(N, x_ini, a, mu, sigma, steps = steps, M = M, cpus = cpus, verbose = True)
+
+            stats_array = simulate(N, x_ini, a, mu, sigma, steps = steps, M = M, cpus = cpus, verbose = True)
+            Gammas_coop = np.array([get_growth(stats["X_coop"])[-1] for stats in stats_array])
+            Gammas_def  = np.array([get_growth(stats["X_def"]) [-1] for stats in stats_array])
+
             _, _ , gamma_rel, error = gamma_stats(Gammas_coop, Gammas_def, agent_id=0)
             Gammas_rel[m] = gamma_rel
             Errors[m] = error
             rel_error = error/gamma_rel
 
             if save:
+                if verbose: print("Saving results...")
                 import csv
                 row = [N, x_ini, a_i, a1, mu, sigma, steps, M, gamma_rel, error, rel_error]
                 with open('./data/fig_1a.csv', 'a', newline='') as file:
@@ -219,15 +209,22 @@ Thyis function determines the dynamic that the system follows throughout its evo
 """
 
 def get_dynamics(a, exponent, agent_id = 0):
-    steps, N = a.shape
+    if len(a.shape) == 2: steps, N = a.shape; M = 1
+    if len(a.shape) == 3: M, steps, N, = a.shape
+    monopoly_count = 0
+    commune_count = 0
+    for m in range(M):
+        # Monopoly check
+        monopoly = np.logical_or( np.isclose(a[m, :, agent_id,], np.ones(steps)), np.isclose(a[m, :, agent_id], np.zeros(steps)) )
+        monopoly_count += np.sum(monopoly)/steps
+        # Communal check
+        I = np.ones(steps)
+        commune = np.isclose(a[m, :, agent_id], (I-I/N)**exponent, rtol=0.10)
+        commune_count += np.sum(commune)/steps
 
-    # Monopoly check
-    monopoly = np.logical_or( np.isclose(a[:, agent_id], np.ones(steps)), np.isclose(a[:, agent_id], np.zeros(steps)) )
-    monopoly_count = np.sum(monopoly)/steps
-    # Communal check
-    I = np.ones(steps)
-    commune = np.isclose(a[:, agent_id], (I-I/N)**exponent, rtol=0.10)
-    commune_count = np.sum(commune)/steps
+
+    monopoly_count /= M
+    commune_count /= M
 
     dynamic = "unknown"
     if   monopoly_count > 0.90: dynamic = "monopoly"
@@ -238,6 +235,7 @@ def get_dynamics(a, exponent, agent_id = 0):
         "monopoly": monopoly_count,
         "commune": commune_count,
         "dynamic": dynamic,
+        "N_simulations": M,
     }
 
     return dynamics
@@ -250,17 +248,18 @@ This function attempts to find the greedy regime exponent where the behavior of 
 def get_critical_exponent(N, exponent_array, sigma = 0.1, steps = int(1e4), M=10, cpus = 2, save = False, verbose = True):
     x = 10000.0
     a = 0.5
+    mu = 1.0
 
     for nu in exponent_array:
         if verbose: print(f"\nRunning for exponent={nu}...")
-        # np.random.seed(seed)
-        stats = evolve(N, x, a, 1.0, sigma, steps, new_a=('greedy', nu))
+        stats_array = simulate(N, x, a, mu, sigma, steps = steps, M = M, cpus = cpus, verbose = True, new_a=('greedy', nu))
 
-        dynamics = get_dynamics(stats["a_array"], nu)
+        a_matrix = np.array([stats["a_array"] for stats in stats_array])
+        dynamics = get_dynamics(a_matrix, nu)
 
         if save:
             import csv
-            row = [N, sigma, steps, nu,
+            row = [N, sigma, steps, dynamics["N_simulations"], nu,
                    dynamics["monopoly"],dynamics["commune"],dynamics["dynamic"]]
             with open('./data/behavioral_a.csv', 'a', newline='') as file:
                 writer = csv.writer(file)
@@ -269,62 +268,13 @@ def get_critical_exponent(N, exponent_array, sigma = 0.1, steps = int(1e4), M=10
 
 if __name__=="__main__":
 
-    exponent_array = np.around(np.arange(6.3, 6.9, 0.01), 3)
-
-    get_critical_exponent(10, exponent_array, sigma = 0.1, steps = int(3e4), save = True, verbose=True)
-
-    quit()
-    np.random.seed(123)
-    exponent = 5.0
-    result = evolve(N = 10, new_a=('greedy', exponent))
-    import matplotlib.pyplot as plt
-    plt.plot(result["a_array"])
-    plt.ylim(-.05,1.05)
-    plt.show()
-    import plot
-    plot.evolution(result["X_coop"])
-    a = result["a_array"]
-    dynamic = get_dynamics(a, exponent)
-    print(dynamic)
-    quit()
-    exponent_array = np.arange(5, 10, 0.1)
-    # get_critical_exponent(10, exponent_array, 0.1, True)
-    # quit()
-
-    from evolution import evolve
-
-    N = 20
-    x = np.ones(N) * 10000.0
-    a = np.linspace(0.1, 0.1, N)
-    # a = 0.5
-    # a[-1] = 0.5
-
-    import matplotlib.pyplot as plt
-    np.random.seed(123)
-    stats = evolve(N, x, a, mu=1.00, sigma=0.1, steps= int(1e4), new_a=('greedy', 13))
-    fig, ax = plt.subplots()
-    plt.xlabel("Time steps")
-    plt.ylabel("Agent Values")
-    plt.plot(stats["X_coop"])
-    fig, ax = plt.subplots()
-    plt.xlabel("Time steps")
-    plt.ylabel("Sharing parameter")
-    plt.plot(stats["a_array"])
-    # plt.plot(np.mean(stats["a_array"], axis=1))
-    plt.show(block=False)
-
-    # np.random.seed(123)
-    # stats = evolve(N, x, a, mu=1.00, steps= int(1e4), new_a=('greedy', 8))
-    # fig, ax = plt.subplots()
-    # plt.plot(stats["X_coop"])
-    # fig, ax = plt.subplots()
-    # plt.plot(stats["a_array"])
-    # plt.show(block=False)
-
-    input()
-    quit()
-    # Fig 1a
+    # Get crital exponent of greedy mode
     if True:
+        exponent_array = np.around(np.arange(5, 8, 0.05), 3)
+        get_critical_exponent(10, exponent_array, sigma = 0.1, steps = int(1e4), M = 10, cpus = 6, save = True, verbose=True)
+
+    # Fig 1a
+    if False:
         N=2
         x_ini=100.0
         a_i = 0.5
@@ -334,7 +284,7 @@ if __name__=="__main__":
                         steps=int(1e4), M = 100, cpus = 7, save = True, verbose=True)
         
     # Fig 1 suplementary
-    if True:
+    if False:
         N_array = [2,3,4,6,10]
         a_1_array = np.around(np.arange(0, 1.5, 0.02)[1:], 4)
 

@@ -82,7 +82,7 @@ def plot_exponent(N, sigma, steps, save=False):
     df = pd.read_csv('data/behavioral_a.csv')
 
     # Filtrar los datos según el valor de N
-    df_filtered = df[(df['N'] == N) & (df['sigma'] == sigma) & (df['steps'] == steps)].sort_values("exponent")
+    df_filtered = df[(df['N_agents'] == N) & (df['sigma'] == sigma) & (df['steps'] == steps)].sort_values("exponent")
 
     # Definir los marcadores y colores para cada categoría en la columna "dynamic"
     markers = {
@@ -129,7 +129,7 @@ def plot_exponent(N, sigma, steps, save=False):
 
 if __name__ == '__main__':
 
-    plot_exponent(10, 0.1, 30000,  False)
+    plot_exponent(10, 0.1, 10000,  False)
 
 
 

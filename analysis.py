@@ -34,8 +34,17 @@ def compile_data(input_file, output, parameter_columns):
     print(f"Resultados combinados guardados en: {output}")
 
 
-# Figure 1 suplemental
+# Crital exponents
 if True:
+    fig, ax = plt.subplots()
+    input_file = "./data/behavioral_a.csv"
+    output = "./data/behavioral_a_compiled.csv"
+    parameter_columns = ["N_agents","sigma","steps"]
+
+    compile_data(input_file, output, parameter_columns)
+
+# Figure 1 suplemental
+if False:
     fig, ax = plt.subplots()
     input_file = "./data/relative_long_term_growth_rate.csv"
     input_file = "./data/fig_1_sup.csv"
@@ -70,7 +79,7 @@ if True:
 
     
 # Figure 1a
-if True:
+if False:
     fig, ax = plt.subplots()
     input_file = "./data/fig_1a.csv"
     output = "./data/fig1a_compiled.csv"
