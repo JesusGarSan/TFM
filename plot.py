@@ -70,9 +70,66 @@ def graph(A):
     plt.show(block=False)
 
 
+
+"""
+plot critical exponent
+"""
+import pandas as pd
+import matplotlib.pyplot as plt
+
+def plot_exponent(N, sigma, steps, save=False):
+    # Leer el archivo CSV
+    df = pd.read_csv('data/behavioral_a.csv')
+
+    # Filtrar los datos según el valor de N
+    df_filtered = df[(df['N'] == N) & (df['sigma'] == sigma) & (df['steps'] == steps)].sort_values("exponent")
+
+    # Definir los marcadores y colores para cada categoría en la columna "dynamic"
+    markers = {
+        'commune': 'o',
+        'monopoly': 's',
+        'mixed': 'D',
+        'unknown': 'x'  
+    }
+
+    # Colores para las diferentes curvas
+    colors = {
+        'monopoly%': 'blue',
+        'commune%': 'red'
+    }
+
+    # Crear la gráfica
+    plt.figure(figsize=(10, 6))
+
+    # Graficar % de monopolio
+    for dynamic_type, marker in markers.items():
+        df_dynamic = df_filtered[df_filtered['dynamic'] == dynamic_type]
+        plt.scatter(df_dynamic['exponent'], df_dynamic['monopoly%'], 
+                 marker=marker, linestyle='-', color=colors['monopoly%'],
+                 label=f'Monopoly % ' if dynamic_type == 'commune' else "")
+        # Graficar % comunal
+        plt.scatter(df_dynamic['exponent'], df_dynamic['commune%'], 
+                 marker=marker, linestyle='-', color=colors['commune%'],
+                 label=f'Commune %' if dynamic_type == 'commune' else "")
+
+    # Añadir título y etiquetas
+    plt.title(f'Behavioral Data for N = {N}')
+    plt.xlabel('Exponent')
+    plt.ylabel('Percentage')
+    plt.legend()
+    plt.grid(True)
+    
+    # Guardar o mostrar la gráfica
+    if save:
+        plt.savefig("./figures/exponent.png")
+        plt.show()
+    else:
+        plt.show()
+
+
 if __name__ == '__main__':
-    import numpy as np
-    X_coop = np.loadtxt('data/X_coop.txt')
-    X_def = np.loadtxt('data/X_def.txt')
-    evolution(X_coop)
-    evolution(X_def)
+
+    plot_exponent(10, 0.1, 30000,  False)
+
+
+

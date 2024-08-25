@@ -69,7 +69,8 @@ Gammas_coop: [len(x_ini)] array. Last value of the logarithmic growth rate in th
 Gammas_def: [len(x_ini)] array. Last value of the logarithmic growth rate in the defective case
 """
 def _simulate(N, x_ini, a, mu, sigma, defection, steps, **kwargs):
-    x_coop, x_def = evolve(N, x_ini, a, mu, sigma, defection, steps, **kwargs)
+    stats = evolve(N, x_ini, a, mu, sigma, defection, steps, **kwargs)
+    x_coop, x_def = stats["X_coop"], stats["X_def"]
     X_coop_final = x_coop[-1, :]
     X_def_final = x_def[-1, :]
 
@@ -211,34 +212,114 @@ def fig_1a_simulation(N, x_ini, a_i, a_1_array, mu,  sigmas, steps = int(1e4), M
     return
 
 
+"""
+function get_dynamics
 
+Thyis function determines the dynamic that the system follows throughout its evolution.
+"""
 
+def get_dynamics(a, exponent, agent_id = 0):
+    steps, N = a.shape
+
+    # Monopoly check
+    monopoly = np.logical_or( np.isclose(a[:, agent_id], np.ones(steps)), np.isclose(a[:, agent_id], np.zeros(steps)) )
+    monopoly_count = np.sum(monopoly)/steps
+    # Communal check
+    I = np.ones(steps)
+    commune = np.isclose(a[:, agent_id], (I-I/N)**exponent, rtol=0.10)
+    commune_count = np.sum(commune)/steps
+
+    dynamic = "unknown"
+    if   monopoly_count > 0.90: dynamic = "monopoly"
+    elif commune_count  > 0.90: dynamic = "commune"
+    elif (monopoly_count + commune_count  > 0.90): dynamic = "mixed"
+
+    dynamics = {
+        "monopoly": monopoly_count,
+        "commune": commune_count,
+        "dynamic": dynamic,
+    }
+
+    return dynamics
+
+"""
+function: get_critical_exponent
+
+This function attempts to find the greedy regime exponent where the behavior of the system changes
+"""
+def get_critical_exponent(N, exponent_array, sigma = 0.1, steps = int(1e4), M=10, cpus = 2, save = False, verbose = True):
+    x = 10000.0
+    a = 0.5
+
+    for nu in exponent_array:
+        if verbose: print(f"\nRunning for exponent={nu}...")
+        # np.random.seed(seed)
+        stats = evolve(N, x, a, 1.0, sigma, steps, new_a=('greedy', nu))
+
+        dynamics = get_dynamics(stats["a_array"], nu)
+
+        if save:
+            import csv
+            row = [N, sigma, steps, nu,
+                   dynamics["monopoly"],dynamics["commune"],dynamics["dynamic"]]
+            with open('./data/behavioral_a.csv', 'a', newline='') as file:
+                writer = csv.writer(file)
+                writer.writerow(row)
+    return
 
 if __name__=="__main__":
+
+    exponent_array = np.around(np.arange(6.3, 6.9, 0.01), 3)
+
+    get_critical_exponent(10, exponent_array, sigma = 0.1, steps = int(3e4), save = True, verbose=True)
+
+    quit()
+    np.random.seed(123)
+    exponent = 5.0
+    result = evolve(N = 10, new_a=('greedy', exponent))
+    import matplotlib.pyplot as plt
+    plt.plot(result["a_array"])
+    plt.ylim(-.05,1.05)
+    plt.show()
+    import plot
+    plot.evolution(result["X_coop"])
+    a = result["a_array"]
+    dynamic = get_dynamics(a, exponent)
+    print(dynamic)
+    quit()
+    exponent_array = np.arange(5, 10, 0.1)
+    # get_critical_exponent(10, exponent_array, 0.1, True)
+    # quit()
+
     from evolution import evolve
 
-    N = 10
+    N = 20
     x = np.ones(N) * 10000.0
     a = np.linspace(0.1, 0.1, N)
-    a = 0.5
+    # a = 0.5
     # a[-1] = 0.5
 
     import matplotlib.pyplot as plt
     np.random.seed(123)
-    stats = evolve(N, x, a, mu=1.00, steps= int(1e4), new_a=('greedy', 6.8))
+    stats = evolve(N, x, a, mu=1.00, sigma=0.1, steps= int(1e4), new_a=('greedy', 13))
     fig, ax = plt.subplots()
+    plt.xlabel("Time steps")
+    plt.ylabel("Agent Values")
     plt.plot(stats["X_coop"])
     fig, ax = plt.subplots()
+    plt.xlabel("Time steps")
+    plt.ylabel("Sharing parameter")
     plt.plot(stats["a_array"])
+    # plt.plot(np.mean(stats["a_array"], axis=1))
     plt.show(block=False)
 
-    np.random.seed(123)
-    stats = evolve(N, x, a, mu=1.00, steps= int(1e4), new_a=('greedy', 8))
-    fig, ax = plt.subplots()
-    plt.plot(stats["X_coop"])
-    fig, ax = plt.subplots()
-    plt.plot(stats["a_array"])
-    plt.show(block=False)
+    # np.random.seed(123)
+    # stats = evolve(N, x, a, mu=1.00, steps= int(1e4), new_a=('greedy', 8))
+    # fig, ax = plt.subplots()
+    # plt.plot(stats["X_coop"])
+    # fig, ax = plt.subplots()
+    # plt.plot(stats["a_array"])
+    # plt.show(block=False)
 
     input()
     quit()

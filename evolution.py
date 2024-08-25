@@ -34,31 +34,6 @@ def _test_agent_number(N, x, a, mu, sigma):
 
     return N, x, a, mu, sigma
 
-"""
-function: update_a
-
-Updates the value of the sharing parameter a depending on the value of the agents x.
-
-inputs:
-Inputs:
-a: Sharing parameters of each agent
-x: Values of the agents
-mode: Type of regime to consider when updating a
-exponent: Exponent to use in the regime. It measures the magnitud of the regime
-
-Returns:
-a: new sharing aprameters of the agents
-"""
-
-def update_a(a, x, mode, exponent):
-    X_total = np.sum(x)
-    X_rel = x/X_total
-    if mode =='greedy':   return (1-X_rel)**exponent
-    if mode =='generous': return (X_rel)**exponent
-
-    from warnings import warn
-    warn(f"Warning: {mode} does not correspond to any of the modes implemented in update_a. Returning original a array")
-    return a
 
 
 """
@@ -203,6 +178,31 @@ def get_growth(X):
         Gamma[i] = np.log(X[i,:]/x_ini)/i
     return Gamma
 
+"""
+function: update_a
+
+Updates the value of the sharing parameter a depending on the value of the agents x.
+
+inputs:
+Inputs:
+a: Sharing parameters of each agent
+x: Values of the agents
+mode: Type of regime to consider when updating a
+exponent: Exponent to use in the regime. It measures the magnitud of the regime
+
+Returns:
+a: new sharing aprameters of the agents
+"""
+
+def update_a(a, x, mode, exponent):
+    X_total = np.sum(x)
+    X_rel = x/X_total
+    if mode =='greedy':   return (1-X_rel)**exponent
+    if mode =='generous': return (X_rel)**exponent
+
+    from warnings import warn
+    warn(f"Warning: {mode} does not correspond to any of the modes implemented in update_a. Returning original a array")
+    return a
 
 
 """
