@@ -79,7 +79,7 @@ import matplotlib.pyplot as plt
 
 def plot_exponent(N, sigma, steps, save=False):
     # Leer el archivo CSV
-    df = pd.read_csv('data/behavioral_a.csv')
+    df = pd.read_csv('data/behavioral_a_compiled.csv')
 
     # Filtrar los datos según el valor de N
     df_filtered = df[(df['N_agents'] == N) & (df['sigma'] == sigma) & (df['steps'] == steps)].sort_values("exponent")
@@ -113,7 +113,7 @@ def plot_exponent(N, sigma, steps, save=False):
                  label=f'Commune %' if dynamic_type == 'commune' else "")
 
     # Añadir título y etiquetas
-    plt.title(f'Behavioral Data for N = {N}')
+    plt.title(rf'Behavioral Data for N = {N}, $\sigma$ = {sigma}')
     plt.xlabel('Exponent')
     plt.ylabel('Percentage')
     plt.legend()

@@ -33,15 +33,40 @@ def compile_data(input_file, output, parameter_columns):
 
     print(f"Resultados combinados guardados en: {output}")
 
+def compile_exponent_data(input_file, output, parameter_columns):
+    df = pd.read_csv(input_file)
 
+    grouped = df.groupby(parameter_columns).apply(
+        lambda x: pd.Series({
+            'N_simulations': x['N_simulations'].sum(),
+            'monopoly%': x["monopoly%"].mean(),
+            'commune%': x["commune%"].mean(),
+        })
+    ).reset_index()
+
+    # Añadiendo la columna 'dynamic' basado en los valores de 'monopoly%' y 'commune%'
+    grouped['dynamic'] = grouped.apply(
+        lambda row: "monopoly" if row['monopoly%'] > 0.90 else
+                    "commune" if row['commune%'] > 0.90 else
+                    "mixed" if (row['monopoly%'] + row['commune%']) > 0.90 else
+                    "",  # valor por defecto si no se cumple ninguna condición
+        axis=1
+    )
+    grouped.to_csv(output, index=False)
+
+    print(f"Resultados combinados guardados en: {output}")
 # Crital exponents
 if True:
     fig, ax = plt.subplots()
     input_file = "./data/behavioral_a.csv"
     output = "./data/behavioral_a_compiled.csv"
-    parameter_columns = ["N_agents","sigma","steps"]
+    parameter_columns = ["N_agents","sigma","steps", "exponent"]
 
-    compile_data(input_file, output, parameter_columns)
+    compile_exponent_data(input_file, output, parameter_columns)
+
+    import plot
+    plot.plot_exponent(2, 0.1, 10000,  False)
+
 
 # Figure 1 suplemental
 if False:
@@ -110,6 +135,3 @@ if False:
     plt.legend()
     plt.show(block=False)
 
-
-
-input()

@@ -94,8 +94,9 @@ def simulate(N, x_ini, a, mu=1, sigma=0.1, steps=int(1e4), M=10, cpus = 2, **kwa
     from functools import partial # This is used to pass **kwargs to the function in starmap
     assert cpus <= mp.cpu_count(), "Specified number of CPUs is larger than available."
     if cpus == 1: return _simulate_single(N, x_ini,a,mu,sigma,steps,M,**kwargs)
-    if ('verbose' in kwargs and kwargs['verbose'] == True): verbose = True
-    else: verbose= False 
+    # if ('verbose' in kwargs and kwargs['verbose'] == True): verbose = True
+    # else: verbose= False 
+    verbose = kwargs.get("verbose", False)
 
     if verbose: print(f"Initializing multiprocessing pool for {M} tasks and {cpus} cpus...")
     pool = mp.Pool(cpus)
@@ -270,8 +271,9 @@ if __name__=="__main__":
 
     # Get crital exponent of greedy mode
     if True:
-        exponent_array = np.around(np.arange(5, 8, 0.05), 3)
-        get_critical_exponent(10, exponent_array, sigma = 0.1, steps = int(1e4), M = 10, cpus = 6, save = True, verbose=True)
+        exponent_array = np.around(np.arange(
+            1, 10, 0.5        ), 3)
+        get_critical_exponent(2, exponent_array, sigma = 0.1, steps = int(1e4), M = 20, cpus = 7, save = True, verbose=True)
 
     # Fig 1a
     if False:
